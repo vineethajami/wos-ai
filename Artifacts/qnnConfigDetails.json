@@ -1,0 +1,6 @@
+{
+    "backend_extensions": {
+        "config_file_path": "C:\\Qualcomm_AI\\backendExtensionDetails.json",
+        "shared_library_path": "QnnHtpNetRunExtensions.dll"
+    }
+}
