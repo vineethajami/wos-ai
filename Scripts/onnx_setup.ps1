@@ -26,9 +26,12 @@ $pythonUrl = "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
 <# Artifacts for tutorials, including:
 - kitten.jpg: Test image for prediction.
 - qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
-- imagenet_classes.txt: Image label file for post-processing.
-- Other files: PDFs and text files with Qualcomm legal information.#>
-$artifactsUrl =  "https://docs.qualcomm.com/bundle/publicresource/HS11-62010-1.zip"
+- imagenet_classes.txt: Image label file for post-processing.#>
+# # Define the URL of the file to download
+$kittenUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
+$qc_utilsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
+$imagenetLabelsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
+
 
 # ONNX model file for image prediction used in tutorials.
 $modelUrl =  "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
@@ -41,9 +44,6 @@ $rootDirPath = "C:\Qualcomm_AI"
 
 # Define download directory inside the working directory for downloading all dependency files and SDK.
 $downloadDirPath = "$rootDirPath\Downloaded_file"
-$modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
-$artifacts_Path = "$rootDirPath\kitten.jpg"
-
 
 # Define the path where the installer will be downloaded.
 $pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
@@ -55,6 +55,14 @@ $username =  (Get-ChildItem Env:\Username).value
 # Define the python installation path.
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312"
 $pythonScriptsPath = $pythonPath+"\Scripts"
+
+# Define the mobilenet model download path.
+$modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
+
+# Define the artifacts download path.
+$kittenPath = "$rootDirPath\kitten.jpg"
+$qc_utilsPath = "$rootDirPath\qc_utils.py"
+$imagenetLabelsPath = "$rootDirPath\imagenet_classes.txt"
 
 <#Define the Python environment paths.
 Each tutorial section will have its own individual Python environment:
@@ -71,7 +79,7 @@ Users are advised to create separate Python environments for each case.
 Define the paths for each environment#>
 $SDX_ORT_CPU_ENV_Path = "$rootDirPath\SDX_ORT_CPU_ENV"
 $SDX_ORT_DML_ENV_Path = "$rootDirPath\SDX_ORT_DML_ENV"
-$SDX_ORT_HF_ENV_Path      = "$rootDirPath\SDX_ORT_HF_ENV"
+$SDX_ORT_HF_ENV_Path  = "$rootDirPath\SDX_ORT_HF_ENV"
 $SDX_ORT_QNN_ENV_Path = "$rootDirPath\SDX_ORT_QNN_ENV"
 
 
@@ -84,7 +92,7 @@ if (-Not (Test-Path $downloadDirPath)) {
 
 ############################ Function ##################################
 
-Function Download-File {
+Function download_file {
     param (
         [string]$url,
         [string]$downloadfile
@@ -141,21 +149,48 @@ Function install-python {
     }
 }
 
-Function Download-And-Extract-Artifact {
-    param (
-        [string]$artifactsUrl,
-        [string]$rootDirPath
-    )
+Function download_artifacts{
+    param ()
     process{
-
-        $zipFilePath = "$rootDirPath\downloaded.zip"
-        # Download the ZIP file
-        Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
-        # Extract the ZIP file
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
-        # Remove the downloaded ZIP file
-        Remove-Item -Path $zipFilePath
+        # Kitten image for mobilenet example
+        if(Test-Path $kittenPath){
+            Write-Output "Kitten image is already downloaded at : $kittenPath"
+        }
+        else{
+            $result = download_file -url $kittenUrl -downloadfile $kittenPath
+            if($result){
+                Write-Output "Kitten image is downloaded at : $kittenPath"
+            }
+            else{
+                Write-Output "Kitten image download failed. Download from $kittenUrl"
+            }
+        }
+        # qc_utils for pre and post processing for the mobilenet 
+        if(Test-Path $qc_utilsPath){
+            Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
+        }
+        else{
+            $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
+            if($result){
+                Write-Output "qc_utils.py is downloaded at : $qc_utilsPath"
+            }
+            else{
+                Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
+            }
+        }
+        # Imagenet labels
+        if(Test-Path $imagenetLabelsPath){
+            Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
+        }
+        else{
+            $result = download_file -url $imagenetLabelsUrl -downloadfile $imagenetLabelsPath
+            if($result){
+                Write-Output "Imagenet labels is downloaded at : $imagenetLabelsPath"
+            }
+            else{
+                Write-Output "Imagenet labels download failed. Download from $imagenetLabelsUrl"
+            }
+        }
     }
 }
 
@@ -168,8 +203,7 @@ Function download_install_python {
         }
         else {
             Write-Output "Downloading python file ..." 
-            #Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonDownloaderPath 
-            $result = Download-File -url $pythonUrl -downloadfile $pythonDownloaderPath
+            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
             if ($result) {
                 Write-Output "Python File is downloaded at : $pythonDownloaderPath" 
             } 
@@ -202,7 +236,7 @@ Function download_onnxmodel {
         }
         else {
             Write-Output "Downloading onnx model ..." 
-            $result = Download-File -url $modelUrl -downloadfile $modelFilePath
+            $result = download_file -url $modelUrl -downloadfile $modelFilePath
             if ($result) {
                 Write-Output "Onnx File is downloaded at : $modelFilePath" 
             } 
@@ -223,7 +257,7 @@ Function download_install_redistributable {
         }
         else {
             Write-Output "Downloading VS-Redistributable..." 
-            $result = Download-File -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
+            $result = download_file -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
             if ($result) {
                 Write-Output "VS-Redistributable File is downloaded at : $vsRedistDownloadPath" 
             } 
@@ -231,7 +265,7 @@ Function download_install_redistributable {
                 Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl" 
             }
         }
-        #install VS-Redistributable
+        # Install VS-Redistributable
         if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
             Write-Output "VS-Redistributable is already installed."
         }
@@ -247,28 +281,15 @@ Function download_install_redistributable {
     }
 }
 
-Function download_extract_artifacts {
-    param()
-    process {
-        # Download artifacts file
-        if(-Not (Test-Path -Path  $artifacts_Path)){
-            $result = Download-And-Extract-Artifact -artifactsUrl $artifactsUrl -rootDirPath $rootDirPath
-            Write-Output "Artifacts File is downloaded and extracted at : $rootDirPath" 
-        }   
-        else{
-            Write-Output "Artifacts are already present" 
-        }     
-    }
-}
 
-############################## main code ##################################
+############################## Main code ##################################
 
 Function installation_for_ORT_CPU_dependencies {
     param()
     process {
         download_install_python
         download_onnxmodel
-        download_extract_artifacts
+        download_artifacts
         download_install_redistributable
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_CPU_ENV_Path))
@@ -293,7 +314,7 @@ Function installation_for_ORT_DML_dependencies {
     process {
         download_install_python
         download_onnxmodel
-        download_extract_artifacts
+        download_artifacts
         download_install_redistributable
         # Check if virtual environment was created
         if (-Not (Test-Path -Path $SDX_ORT_DML_ENV_Path))
@@ -342,7 +363,7 @@ Function installation_for_ORT_QNN_dependencies {
     process {
         download_install_python
         download_onnxmodel
-        download_extract_artifacts
+        download_artifacts
         download_install_redistributable
         # Check if virtual environment was created
         if (-Not (Test-Path -Path $SDX_ORT_QNN_ENV_Path))
@@ -365,7 +386,3 @@ Function installation_for_ORT_QNN_dependencies {
     }
 }
 
-# installation_for_ORT_CPU_dependencies
-# installation_for_ORT_DML_dependencies
-# installation_for_ORT_HF_dependencies
-# installation_for_ORT_QNN_dependencies
