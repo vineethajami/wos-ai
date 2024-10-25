@@ -19,12 +19,18 @@ $pythonUrl = "https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe"
 #cmake 3.30.4 url
 $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
 
-# Artifacts for tutorials, including:
-# - kitten.jpg: Test image for prediction
-# - qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions
-# - imagenet_classes.txt: Image label file for post-processing
-# - Other files: PDFs and text files with Qualcomm legal information
-$artifactsUrl = "https://docs.qualcomm.com/bundle/publicresource/HS11-62010-1.zip"
+<# Artifacts for tutorials, including:
+- kitten.jpg: Test image for prediction.
+- qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
+- imagenet_classes.txt: Image label file for post-processing.
+- backendExtensionDetails.json:
+- qnnConfigDetails.json: #>
+# # Define the URL of the file to download
+$kittenUrl                  = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
+$qc_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
+$imagenetLabelsUrl          = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
+$backendExtensionDetailsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/backendExtensionDetails.json"
+$qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qnnConfigDetails.json"
 
 # ONNX model file for image prediction used in tutorials
 $modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
@@ -43,18 +49,28 @@ $downloadDirPath = "$rootDirPath\Downloaded_file"
 
 # Define paths for downloaded installers
 $pythonDownloaderPath = "$downloadDirPath\python-3.10.9-amd64.exe"
-$cmakeDownloaderPath = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
+$cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
 $vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 $vsStudioDownloadPath = "$downloadDirPath\vs_Professional.exe"
-$artifacts_Path = "$rootDirPath\kitten.jpg"
+
+# Define the artifacts download path.
+$kittenPath                  = "$rootDirPath\kitten.jpg"
+$qc_utilsPath                = "$rootDirPath\qc_utils.py"
+$imagenetLabelsPath          = "$rootDirPath\imagenet_classes.txt"
+$backendExtensionDetailsPath = "$rootDirPath\backendExtensionDetails.json"
+$qnnConfigDetailsPath        = "$rootDirPath\qnnConfigDetails.json"
+
+# Define the mobilenet model download path.
 $modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
+
+# Define the SDK download path.
 $aIEngineSdkDownloadPath = "$downloadDirPath\qairt\2.27.0.240926"
 
 # QNN SDK installation path
 $aIEngineSdkInstallPath = "C:\Qualcomm\AIStack\QAIRT"
 
 # Retrieves the value of the Username
-$username =  (Get-ChildItem Env:\Username).value
+$username = (Get-ChildItem Env:\Username).value
 
 # Define the python installation path.
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python310"
@@ -69,11 +85,9 @@ $QAIRT_VENV_Path = "$rootDirPath\QAIRT_VENV"
 $QNN_SDK_VERSION = "2.27.0.240926"
 
 # QNN SDK setup path for activating the environment
-$qnnEnvFilePath = "$aIEngineSdkInstallPath\$QNN_SDK_VERSION\bin\envsetup.ps1"
+$qnnEnvFilePath  = "$aIEngineSdkInstallPath\$QNN_SDK_VERSION\bin\envsetup.ps1"
 
 $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
-
-
 $SUGGESTED_VS_BUILDTOOLS_VERSION = "14.34"
 $SUGGESTED_WINSDK_VERSION = "10.0.22621"
 $SUGGESTED_VC_VERSION = "19.34"
@@ -91,18 +105,18 @@ if (-Not (Test-Path $downloadDirPath)) {
 ############################ Function ##################################
 
 
-Function Install-VS_Studio {
+Function install_VS_Studio {
     param()
     process {
         # Install the VS Studio
         Start-Process -FilePath $vsStudioDownloadPath -ArgumentList "--installPath C:\VS --passive --wait --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended --add Microsoft.VisualStudio.Component.VC.14.34.17.4.x86.x64 --add Microsoft.VisualStudio.Component.VC.14.34.17.4.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset" -Wait -PassThru
         # Check if the VS Studio
-        Check-MSVC-Components-Version
+        check_MSVC_components_version
     }
 }
 
 
-Function Show-Recommended-Version-Message {
+Function show_recommended_version_message {
     param (
         [String] $SuggestVersion,
         [String] $FoundVersion,
@@ -113,7 +127,7 @@ Function Show-Recommended-Version-Message {
     }
 }
 
-Function Show-Required-Version-Message {
+Function show_required_version_message {
     param (
         [String] $RequiredVersion,
         [String] $FoundVersion,
@@ -125,7 +139,7 @@ Function Show-Required-Version-Message {
 }
 
 
-Function Compare-Version {
+Function compare_version {
     param (
         [String] $TargetVersion,
         [String] $FoundVersion,
@@ -134,16 +148,16 @@ Function Compare-Version {
     process {
         if ( (([version]$FoundVersion).Major -eq ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -eq ([version]$TargetVersion).Minor) ) { }
         elseif ( (([version]$FoundVersion).Major -ge ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -ge ([version]$TargetVersion).Minor) ) {
-            Show-Recommended-Version-Message $TargetVersion $FoundVersion $SoftwareName
+            show_recommended_version_message $TargetVersion $FoundVersion $SoftwareName
         }
         else {
-            Show-Required-Version-Message $TargetVersion $FoundVersion $SoftwareName
+            show_required_version_message $TargetVersion $FoundVersion $SoftwareName
             $global:CHECK_RESULT = 0
         }
     }
 }
 
-Function Locate-Prerequisite-Tools-Path {
+Function locate_prerequisite_tools_path {
     param ()
     process {
         # Get and Locate VSWhere
@@ -153,10 +167,10 @@ Function Locate-Prerequisite-Tools-Path {
     }
 }
 
-Function Detect-VS-Instance {
+Function detect_VS_instance {
     param ()
     process {
-        Locate-Prerequisite-Tools-Path
+        locate_prerequisite_tools_path
 
         $INSTALLED_VS_VERSION = & $global:tools['vswhere'] -latest -property installationVersion
         $INSTALLED_PATH = & $global:tools['vswhere'] -latest -property installationPath
@@ -166,7 +180,7 @@ Function Detect-VS-Instance {
     }
 }
 
-Function Check-VS-BuildTools-Version {
+Function check_VS_BuildTools_version {
     param (
         [String] $SuggestVersion = $SUGGESTED_VS_BUILDTOOLS_VERSION
     )
@@ -175,7 +189,7 @@ Function Check-VS-BuildTools-Version {
         $version_file_path = Join-Path $INSTALLED_PATH "VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
         if (Test-Path $version_file_path) {
             $INSTALLED_VS_BUILDTOOLS_VERSION = Get-Content $version_file_path
-            Compare-Version $SuggestVersion $INSTALLED_VS_BUILDTOOLS_VERSION "VS BuildTools"
+            compare_version $SuggestVersion $INSTALLED_VS_BUILDTOOLS_VERSION "VS BuildTools"
             return $INSTALLED_VS_BUILDTOOLS_VERSION
         }
         else {
@@ -186,14 +200,14 @@ Function Check-VS-BuildTools-Version {
     }
 }
 
-Function Check-WinSDK-Version {
+Function check_WinSDK_version {
     param (
         [String] $SuggestVersion = $SUGGESTED_WINSDK_VERSION
     )
     process {
         $INSTALLED_WINSDK_VERSION = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0' -Name ProductVersion
         if($?) {
-            Compare-Version $SuggestVersion $INSTALLED_WINSDK_VERSION "Windows SDK"
+            compare_version $SuggestVersion $INSTALLED_WINSDK_VERSION "Windows SDK"
             return $INSTALLED_WINSDK_VERSION
         }
         else {
@@ -204,7 +218,7 @@ Function Check-WinSDK-Version {
     }
 }
 
-Function Check-VC-Version {
+Function check_VC_version {
     param (
         [String] $VsInstallLocation,
         [String] $BuildToolVersion,
@@ -221,7 +235,7 @@ Function Check-VC-Version {
             $CMD = $process_stderror | Out-String | select-string "Version\s+(\d+\.\d+\.\d+)" # The software version is output in STDERR
             $INSTALLED_VC_VERSION = $CMD.matches.groups[1].value
             if($INSTALLED_VC_VERSION) {
-                Compare-Version $SuggestVersion $INSTALLED_VC_VERSION ("Visual C++(" + $Arch + ")")
+                compare_version $SuggestVersion $INSTALLED_VC_VERSION ("Visual C++(" + $Arch + ")")
                 return $INSTALLED_VC_VERSION
             }
             else {
@@ -231,14 +245,13 @@ Function Check-VC-Version {
         }
         return "Not Installed"
     }
-
 }
 
-Function Check-MSVC-Components-Version {
+Function check_MSVC_components_version {
     param ()
     process {
         $check_result = @()
-        $productId, $vs_install_path, $vs_installed_version = Detect-VS-Instance
+        $productId, $vs_install_path, $vs_installed_version = detect_VS_instance
         if ($productId) {
             $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = $vs_installed_version}
         }
@@ -246,16 +259,16 @@ Function Check-MSVC-Components-Version {
             $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = "Not Installed"}
             $global:CHECK_RESULT = 0
         }
-        $buildtools_version = Check-VS-BuildTools-Version
+        $buildtools_version = check_VS_BuildTools_version
         $check_result += [pscustomobject]@{Name = "VS Build Tools"; Version = $buildtools_version}
-        $check_result += [pscustomobject]@{Name = "Visual C++(x86)"; Version = Check-VC-Version $vs_install_path $buildtools_version "x64"}
-        $check_result += [pscustomobject]@{Name = "Visual C++(arm64)"; Version = Check-VC-Version $vs_install_path $buildtools_version "arm64"}
-        $check_result += [pscustomobject]@{Name = "Windows SDK"; Version = Check-WinSDK-Version}
+        $check_result += [pscustomobject]@{Name = "Visual C++(x86)"; Version = check_VC_version $vs_install_path $buildtools_version "x64"}
+        $check_result += [pscustomobject]@{Name = "Visual C++(arm64)"; Version = check_VC_version $vs_install_path $buildtools_version "arm64"}
+        $check_result += [pscustomobject]@{Name = "Windows SDK"; Version = check_WinSDK_version}
         Write-Host ($check_result | Format-Table| Out-String).Trim()
     }
 }
 
-Function install-python {
+Function install_python {
     param()
     process {
         # Install Python
@@ -284,7 +297,7 @@ Function install-python {
     }
 }
 
-Function install-cmake {
+Function install_cmake {
     param()
     process {
         # Install CMake
@@ -313,7 +326,7 @@ Function install-cmake {
     }
 }
 
-Function Download-File {
+Function download_file {
     param (
         [string]$url,
         [string]$downloadfile
@@ -329,8 +342,7 @@ Function Download-File {
     }
 }
  
-
-Function Download-And-Extract-Artifact {
+Function download_and_extract {
     param (
         [string]$artifactsUrl,
         [string]$rootDirPath
@@ -347,10 +359,7 @@ Function Download-And-Extract-Artifact {
         Remove-Item -Path $zipFilePath
     }  
 }
-
-
-
-############################## main code ##################################
+############################## Main code ##################################
 
 
 Function download_install_python {
@@ -362,8 +371,7 @@ Function download_install_python {
         }
         else {
                 Write-Output "Downloading the python file ..." 
-                #Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonDownloaderPath 
-                $result = Download-File -url $pythonUrl -downloadfile $pythonDownloaderPath
+                $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
                 if ($result) {
                     Write-Output "Python File is downloaded at : $pythonDownloaderPath" 
                 } 
@@ -377,7 +385,7 @@ Function download_install_python {
         }
         else{
             Write-Output "installing python..."
-            if (install-python) {
+            if (install_python) {
                 Write-Output "Python 3.10.9 installed successfully." 
             }
             else{
@@ -398,7 +406,7 @@ Function download_install_cmake {
         }
         else {
             Write-Output "Downloading the CMake file ..."
-            $result = Download-File -url $cmakeUrl -downloadfile $cmakeDownloaderPath
+            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
             if ($result) {
                 Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
             }
@@ -412,7 +420,7 @@ Function download_install_cmake {
         }
         else {
             Write-Output "Installing CMake..."
-            if (install-cmake) {
+            if (install_cmake) {
                 Write-Output "CMake 3.30.4 installed successfully."
             }
             else {
@@ -432,7 +440,7 @@ Function download_onnxmodel {
         }
         else {
             Write-Output "Downloading the onnx model ..." 
-            $result = Download-File -url $modelUrl -downloadfile $modelFilePath
+            $result = download_file -url $modelUrl -downloadfile $modelFilePath
             if ($result) {
                 Write-Output "Onnx File is downloaded at : $modelFilePath" 
 
@@ -444,8 +452,78 @@ Function download_onnxmodel {
     }
 }
 
+Function download_artifacts{
+    param ()
+    process{
+        # Kitten image for mobilenet example
+        if(Test-Path $kittenPath){
+            Write-Output "Kitten image is already downloaded at : $kittenPath"
+        }
+        else{
+            $result = download_file -url $kittenUrl -downloadfile $kittenPath
+            if($result){
+                Write-Output "Kitten image is downloaded at : $kittenPath"
+            }
+            else{
+                Write-Output "Kitten image download failed. Download from $kittenUrl"
+            }
+        }
+        # qc_utils for pre and post processing for the mobilenet 
+        if(Test-Path $qc_utilsPath){
+            Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
+        }
+        else{
+            $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
+            if($result){
+                Write-Output "qc_utils.py is downloaded at : $qc_utilsPath"
+            }
+            else{
+                Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
+            }
+        }
+        # Imagenet labels
+        if(Test-Path $imagenetLabelsPath){
+            Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
+        }
+        else{
+            $result = download_file -url $imagenetLabelsUrl -downloadfile $imagenetLabelsPath
+            if($result){
+                Write-Output "Imagenet labels is downloaded at : $imagenetLabelsPath"
+            }
+            else{
+                Write-Output "Imagenet labels download failed. Download from $imagenetLabelsUrl"
+            }
+        }
+        # backendExtensionDetails.json
+        if(Test-Path $backendExtensionDetailsPath){
+            Write-Output "backendExtensionDetails.json is already downloaded at : $backendExtensionDetailsPath"
+        }
+        else{
+            $result = download_file -url $backendExtensionDetailsUrl -downloadfile $backendExtensionDetailsPath
+            if($result){
+                Write-Output "backendExtensionDetails.json is downloaded at : $backendExtensionDetailsPath"
+            }
+            else{
+                Write-Output "backendExtensionDetails.json download failed. Download from $backendExtensionDetailsUrl"
+            }
+        }
+        # qnnConfigDetails.json
+        if(Test-Path $qnnConfigDetailsPath){
+            Write-Output "qnnConfigDetails.json is already downloaded at : $qnnConfigDetailsPath"
+        }
+        else{
+            $result = download_file -url $qnnConfigDetailsUrl -downloadfile $qnnConfigDetailsPath
+            if($result){
+                Write-Output "qnnConfigDetails.json is downloaded at : $qnnConfigDetailsPath"
+            }
+            else{
+                Write-Output "qnnConfigDetails.json download failed. Download from $qnnConfigDetailsUrl"
+            }
+        }
+    }
+}
 
-Function download_install_vsStudio {
+Function download_install_VS_Studio {
     param()
     process {
             # Download VS Studio file
@@ -454,22 +532,21 @@ Function download_install_vsStudio {
             }
             else {
                     Write-Output "Downloading the VS Studio..." 
-                    Download-File -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
+                    download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
                     if ($result) {
                         Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
-
                     } 
                     else{
                         Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl" 
                     }
             }
-            #install VS-Studio
+            # Install VS-Studio
             if (Test-Path $vsInstallerPath) {
                 Write-Output "VS-Studio already installed."
             }
             else{
                 Write-Output "installing VS-Studio..."
-                if (install-VS_Studio) {
+                if (install_VS_Studio) {
                     Write-Output "VS-Studio installed successfully." 
                 }
                 else{
@@ -489,7 +566,7 @@ Function download_install_AI_Engine_Direct_SDK {
         else {
             Write-Output "Downloading the AI Engine Direct..." 
             #Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonDownloaderPath 
-            $result = Download-And-Extract-Artifact -artifactsUrl $aIEngineSdkUrl -rootDirPath $downloadDirPath
+            $result = download_and_extract -artifactsUrl $aIEngineSdkUrl -rootDirPath $downloadDirPath
             if ($result) {
                 Write-Output " AI Engine Direct Artifacts File is downloaded and extracted at : $downloadDirPath" 
             }
@@ -514,20 +591,6 @@ Function download_install_AI_Engine_Direct_SDK {
     }
 }
 
-Function download_extract_artifacts {
-    param()
-    process {
-        # Download artifacts file
-        if(-Not (Test-Path -Path  $artifacts_Path)){
-            $result = Download-And-Extract-Artifact -artifactsUrl $artifactsUrl -rootDirPath $rootDirPath
-            Write-Output "Artifacts File is downloaded and extracted at : $rootDirPath" 
-        }   
-        else{
-            Write-Output "Artifacts are already present" 
-        }     
-    }
-}
-
 
 
 ############################## main code ##################################
@@ -537,10 +600,10 @@ Function installation_for_QNN_dependencies {
     process{
         download_install_python
         download_onnxmodel
-        download_extract_artifacts
-        download_install_vsStudio
+        download_artifacts
+        download_install_VS_Studio
         download_install_AI_Engine_Direct_SDK
-	download_install_cmake
+	    download_install_cmake
         # Check if virtual environment was created
         if (-Not (Test-Path -Path $QAIRT_VENV_Path))
         {
@@ -569,6 +632,7 @@ Function installation_for_QNN_dependencies {
             & "${QNN_SDK_ROOT}/bin/check-windows-dependency.ps1"
 
         }
+        Write-Output "***** Installation successful for  AI Engine Direct QNN *****"
     }
 }
 
