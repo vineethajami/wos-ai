@@ -6,28 +6,39 @@
 #
 # =============================================================================
 
-# onnx_setup.ps1 script for installing ONNX-related dependencies used in tutorials. Users can modify values such as installer paths, QNN SDK version, etc.
-# Users can get information about the dependencies that will be installed on the system.
+<#  The onnx_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
+    Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
+    Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
+    They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
+    It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
+    The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
+    By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created.  
+	
+    Note: Users can change this path to another location if desired.
+#>
 
 # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
 Set-ExecutionPolicy RemoteSigned 
 
 # Define URLs for dependencies
 
-# For Python 3.12.6 dependency:
-# - Any version of Python can be used for AMD architecture.
-# - For ARM architecture, install Python 3.11.x only. ORT QNN EP supports only Python ARM or AMD installations.
-# - Other ORT EPs require the AMD version of Python.
-# - To use ORT QNN EP on ARM, it is advised to create two Python environments: one for pre- and post-processing, and a second ARM environment for execution.
-# Note: Python ARM has limitations with other dependencies such as torch, onnx, etc.
-# Therefore, we recommend using the AMD version to avoid these issues.
+<#  For Python 3.12.6 dependency:
+    - Any version of Python can be used for AMD architecture.
+    - For ARM architecture, install Python 3.11.x only. ORT QNN EP supports only Python ARM or AMD installations.
+    - Other ORT EPs require the AMD version of Python.
+    - To use ORT QNN EP on ARM, it is advised to create two Python environments: one for pre- and post-processing, and a second ARM environment for execution.
+    Note: Python ARM has limitations with other dependencies such as torch, onnx, etc.
+    Therefore, we recommend using the AMD version to avoid these issues.
+#>
 $pythonUrl = "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
 
-<# Artifacts for tutorials, including:
-- kitten.jpg: Test image for prediction.
-- qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
-- imagenet_classes.txt: Image label file for post-processing.#>
-# # Define the URL of the file to download
+<#  Artifacts for tutorials, including:
+    - kitten.jpg: Test image for prediction.
+    - qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
+    - imagenet_classes.txt: Image label file for post-processing.
+#>
+
+# Define the URL of the file to download
 $kittenUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
 $qc_utilsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
 $imagenetLabelsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
@@ -64,19 +75,20 @@ $kittenPath = "$rootDirPath\kitten.jpg"
 $qc_utilsPath = "$rootDirPath\qc_utils.py"
 $imagenetLabelsPath = "$rootDirPath\imagenet_classes.txt"
 
-<#Define the Python environment paths.
-Each tutorial section will have its own individual Python environment:
+<#  Define the Python environment paths.
+    Each tutorial section will have its own individual Python environment:
 
-ORT CPU EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-ORT DML EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-ORT QNN EP: Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
-Hugging Face Optimum: Uses SDX_HF_ENV, which has specific Python package dependencies.
+    - ORT CPU EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT DML EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT QNN EP: Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
+    - Hugging Face Optimum: Uses SDX_HF_ENV, which has specific Python package dependencies.
 
-Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
-For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
-Users are advised to create separate Python environments for each case.
+    Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
+    For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
+    Users are advised to create separate Python environments for each case.
 
-Define the paths for each environment#>
+    Define the paths for each environment
+#>
 $SDX_ORT_CPU_ENV_Path = "$rootDirPath\SDX_ORT_CPU_ENV"
 $SDX_ORT_DML_ENV_Path = "$rootDirPath\SDX_ORT_DML_ENV"
 $SDX_ORT_HF_ENV_Path  = "$rootDirPath\SDX_ORT_HF_ENV"
@@ -284,7 +296,7 @@ Function download_install_redistributable {
 
 ############################## Main code ##################################
 
-Function installation_for_ORT_CPU_dependencies {
+Function ORT_CPU_Setup {
     param()
     process {
         download_install_python
@@ -309,7 +321,7 @@ Function installation_for_ORT_CPU_dependencies {
     }
 }
 
-Function installation_for_ORT_DML_dependencies {
+Function ORT_DML_Setup {
     param()
     process {
         download_install_python
@@ -334,7 +346,7 @@ Function installation_for_ORT_DML_dependencies {
     }
 }
 
-Function installation_for_ORT_HF_dependencies {
+Function ORT_HF_Setup {
     param()
     process {
         download_install_python
@@ -358,7 +370,7 @@ Function installation_for_ORT_HF_dependencies {
     }
 }
 
-Function installation_for_ORT_QNN_dependencies {
+Function ORT_QNN_Setup {
     param()
     process {
         download_install_python
