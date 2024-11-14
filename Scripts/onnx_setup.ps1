@@ -121,7 +121,7 @@ Function download_file {
     }
 }
 
-Function install-vsRedistributable
+Function install_vsRedistributable
 {
     param()
     process{
@@ -129,7 +129,7 @@ Function install-vsRedistributable
     }
 }
 
-Function install-python {
+Function install_python {
     param()
     process {
         # Install Python
@@ -154,7 +154,6 @@ Function install-python {
             return $true
         } 
         else {
-            Write-Output "Python installation failed."
             return $false
         }
         
@@ -165,9 +164,12 @@ Function download_artifacts{
     param ()
     process{
         # Kitten image for mobilenet example
+        # Checking if kitten.jpg already present 
+        # If yes
         if(Test-Path $kittenPath){
             Write-Output "Kitten image is already downloaded at : $kittenPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $kittenUrl -downloadfile $kittenPath
             if($result){
@@ -178,9 +180,12 @@ Function download_artifacts{
             }
         }
         # qc_utils for pre and post processing for the mobilenet 
+        # Checking if qc_utils.py already present
+        # If yes
         if(Test-Path $qc_utilsPath){
             Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
             if($result){
@@ -191,6 +196,8 @@ Function download_artifacts{
             }
         }
         # Imagenet labels
+        # Checking if imagenet.txt already present
+        # If yes
         if(Test-Path $imagenetLabelsPath){
             Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
         }
@@ -209,31 +216,28 @@ Function download_artifacts{
 Function download_install_python {
     param()
     process {
-        # Download the python file 
-        if (Test-Path $pythonDownloaderPath) {
-            Write-Output "Python file is already downloaded at : $pythonDownloaderPath"
-        }
-        else {
-            Write-Output "Downloading python file ..." 
-            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
-            if ($result) {
-                Write-Output "Python File is downloaded at : $pythonDownloaderPath" 
-            } 
-            else {
-                Write-Output "Python download failed. Download the python file from :  $pythonUrl" 
-            }
-        }
-        # Install python
+        # Check if python already installed
+        # If Yes
         if (Test-Path "$pythonInstallPath\python.exe") {
-            Write-Output "Python is already installed."
+            Write-Output "Python already installed."
         }
-        else {
-            Write-Output "installing python..."
-            if (install-python) {
-                Write-Output "Python 3.12.6 is installed successfully." 
-            }
+        # Else downloading and installing python
+        else{
+            Write-Output "Downloading the python file ..." 
+            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Python File is downloaded at : $pythonDownloaderPath"
+                Write-Output "Installing python..."
+                if (install_python) {
+                    Write-Output "Python 3.10.4 installed successfully." 
+                }
+                else {
+                    Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
+                }
+            } 
             else{
-                Write-Output "Python installation failed.. Please installed python 3.12.6 from : $pythonDownloaderPath"  
+                Write-Output "Python download failed. Download the python file from : $pythonUrl and install." 
             }
         }
     }
@@ -243,16 +247,20 @@ Function download_onnxmodel {
     param()
     process {
         # Download Model file 
+        # Checking if mobilenet.onnx already present 
+        # If yes
         if (Test-Path $modelFilePath) {
-            Write-Output "ONNX File is already present at : $modelFilePath"
+            Write-Output "ONNX File already present at : $modelFilePath" # -ForegroundColor Green
         }
+        # Else downloading
         else {
-            Write-Output "Downloading onnx model ..." 
+            Write-Output "Downloading the onnx model ..." 
             $result = download_file -url $modelUrl -downloadfile $modelFilePath
+            # Checking for successful download
             if ($result) {
                 Write-Output "Onnx File is downloaded at : $modelFilePath" 
             } 
-            else {
+            else{
                 Write-Output "Onnx download failed. Download the onnx file from :  $modelUrl" 
             }
         }
@@ -263,31 +271,28 @@ Function download_onnxmodel {
 Function download_install_redistributable {
     param()
     process {
-        # Download VS Redistributable file
-        if (Test-Path $vsRedistDownloadPath) {
-            Write-Output "VS-Redistributable is already present at : $vsRedistDownloadPath"
+        # Download redistributable file 
+        # Checking if redistributable already present 
+        # If yes
+        if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
+            Write-Output "VS-Redistributable is already installed."
         }
+        # Else downloading and installing redistributable
         else {
             Write-Output "Downloading VS-Redistributable..." 
             $result = download_file -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
             if ($result) {
                 Write-Output "VS-Redistributable File is downloaded at : $vsRedistDownloadPath" 
+                Write-Output "installing VS-Redistributable..."
+                if (install_vsRedistributable) {
+                    Write-Output "VS-Redistributable is installed successfully." 
+                }
+                else {
+                    Write-Output "VS-Redistributable installation failed... from : $vsRedistDownloadPath" 
+                }
             } 
             else{
-                Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl" 
-            }
-        }
-        # Install VS-Redistributable
-        if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
-            Write-Output "VS-Redistributable is already installed."
-        }
-        else {
-            Write-Output "installing VS-Redistributable..."
-            if (install-vsRedistributable) {
-                Write-Output "VS-Redistributable is installed successfully." 
-            }
-            else {
-                Write-Output "VS-Redistributable installation failed... from : $vsRedistDownloadPath" 
+                Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl and install" 
             }
         }
     }
