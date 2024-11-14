@@ -329,31 +329,28 @@ Function download_and_extract {
 Function download_install_cmake {
     param()
     process {
-        # Download the CMake file
-        if (Test-Path $cmakeDownloaderPath) {
-            Write-Output "CMake file already present at : $cmakeDownloaderPath"
-        }
-        else {
-            Write-Output "Downloading the CMake file ..."
-            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
-            if ($result) {
-                Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
-            }
-            else {
-                Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl"
-            }
-        }
-        # Install CMake
+        # Checking if CMake already installed
+        # If yes
         if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
             Write-Output "CMake already installed."
         }
+        # Else downloading and installing CMake
         else {
-            Write-Output "Installing CMake..."
-            if (install_cmake) {
-                Write-Output "CMake 3.30.4 installed successfully."
+            Write-Output "Downloading the CMake file ..."
+            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
+                Write-Output "Installing CMake..."
+                if (install_cmake) {
+                    Write-Output "CMake 3.30.4 installed successfully."
+                }
+                else {
+                    Write-Output "CMake installation failed. Please install CMake 3.30.4 from : $cmakeDownloaderPath"
+                }
             }
             else {
-                Write-Output "CMake installation failed. Please install CMake 3.30.4 from : $cmakeDownloaderPath"
+                Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl and install."
             }
         }
     }
@@ -364,59 +361,49 @@ Function download_install_cmake {
 Function download_install_git {
     param()
     process {
-        # Download the Git file
-        if (Test-Path $gitDownloadPath) {
-            Write-Output "Git file already present at : $gitDownloadPath"
-        }
-        else {
-            Write-Output "Downloading the Git file ..."
-            $result = download_file -url $gitUrl -downloadfile $gitDownloadPath
-            if ($result) {
-                Write-Output "Git file is downloaded at : $gitDownloadPath"
-            }
-            else {
-                Write-Output "Git download failed. Download the Git file from : $gitUrl"
-            }
-        }
-        # Install Git
+        # Checking if Git is already installed
         if (Test-Path "$gitInstallPath\bin\git.exe") {
             Write-Output "Git already installed."
         }
+        # Else downloading and installing Git
         else {
-            Write-Output "Installing Git..."
-            if (install_git) {
-                Write-Output "Git 2.47.0.2 installed successfully."
+            Write-Output "Downloading the Git file ..."
+            $result = download_file -url $gitUrl -downloadfile $gitDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Git file is downloaded at : $gitDownloadPath"
+                Write-Output "Installing Git..."
+                if (install_git) {
+                    Write-Output "Git 2.47.0.2 installed successfully."
+                }
+                else {
+                    Write-Output "Git installation failed. Please install Git 2.47.0.2 from : $gitDownloadPath"
+                }
             }
             else {
-                Write-Output "Git installation failed. Please install Git 2.47.0.2 from : $gitDownloadPath"
+                Write-Output "Git download failed. Download the Git file from : $gitUrl and install."
             }
         }
     }
 }
 
 
+
 Function download_install_VS_Studio {
     param()
     process {
-            # Download VS Studio file
-            if (Test-Path $vsStudioDownloadPath) {
-                Write-Output "VS Studio already present at : $vsStudioDownloadPath" # -ForegroundColor Green
-            }
-            else {
-                    Write-Output "Downloading the VS Studio..." 
-                    $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
-                    if ($result) {
-                        Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
-                    } 
-                    else{
-                        Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl" 
-                    }
-            }
-            # Install VS-Studio
-            if (Test-Path $vsInstallerPath) {
-                Write-Output "VS-Studio already installed."
-            }
-            else{
+        # Checking if VStudio already installed
+        # If yes
+        if (Test-Path $vsInstallerPath) {
+            Write-Output "VS-Studio already installed."
+        }
+        # Else downloading and installing VStudio
+        else {
+            Write-Output "Downloading the VS Studio..." 
+            $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
                 Write-Output "installing VS-Studio..."
                 if (install_VS_Studio) {
                     Write-Output "VS-Studio installed successfully." 
@@ -424,7 +411,11 @@ Function download_install_VS_Studio {
                 else{
                     Write-Output "VS-Studio installation failed..  from : $vsStudioDownloadPath"  
                 }
+            } 
+            else{
+                Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl and install." 
             }
+        }
     }
 }
 
