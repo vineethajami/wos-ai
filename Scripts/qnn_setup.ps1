@@ -6,13 +6,14 @@
 #
 # =============================================================================
 
-<#  
-    The qnn_setup.ps1 PowerShell script automatesthe setup process for Qualcomm's AI Engine Direct by downloading and installing necessary components, including Python, ONNX models, QNN SDK, and various dependencies.
+<#  qnn_setup.ps1 script for installing QNN-related dependencies. 
+    Users can modify values such as installer paths, QNN SDK version, etc.
+
+    The PowerShell script automatesthe setup process for Qualcomm's AI Engine Direct QNN execution provider by downloading and installing necessary components, including Python, ONNX models, and various dependencies.
     It creates and activates a virtual environment, upgrades pip, and installs required Python packages. 
     The function also runs scripts to check and ensure all dependencies are correctly set up, providing a complete and successful installation for AI Engine Direct QNN. 
     By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created.
-	
-    Note: Users can modify values such as rootDirPath, QNN SDK version, etc, if desired
+    Note: Users can change this path to another location if desired.
 #>
 
 # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -21,7 +22,7 @@ Set-ExecutionPolicy RemoteSigned
 # Define URLs for dependencies
 
 # Python 3.10.9 dependency for QNN SDK.
-$pythonUrl = "https://www.python.org/ftp/python/3.10.4/python-3.10.4-amd64.exe"
+$pythonUrl = "https://www.python.org/ftp/python/3.10.9/python-3.10.9-amd64.exe"
 
 # Cmake 3.30.4 url
 $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
@@ -44,10 +45,10 @@ $qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/ref
 $modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
 
 # QNN SDK download link for converting, generating, and executing the model on HTP (NPU) backend
-$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.28.0.241029.zip"
+$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.27.0.240926.zip"
 
 # Visual Studio dependency for compiling and converting ONNX model to C++ & binary, used for generating model.dll file
-$vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
+$vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/07db0e25-01f0-4ac0-946d-e03196d2cc8b/0c540fea0367e284bc673654490b22403e6a93e458f855670406a2ca13c20ffe/vs_Professional.exe"
 
 # Define working directory where all files will be stored and used in the tutorial. Users can change this path to their desired location.
 $rootDirPath = "C:\Qualcomm_AI"
@@ -56,9 +57,9 @@ $rootDirPath = "C:\Qualcomm_AI"
 $downloadDirPath = "$rootDirPath\Downloaded_file"
 
 # Define paths for downloaded installers
-$pythonDownloaderPath = "$downloadDirPath\python-3.10.4-amd64.exe"
+$pythonDownloaderPath = "$downloadDirPath\python-3.10.9-amd64.exe"
 $cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
-$vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
+$vsStudioDownloadPath = "$downloadDirPath\vs_Professional.exe"
 
 # Define the artifacts download path.
 $kittenPath                  = "$rootDirPath\kitten.jpg"
@@ -71,7 +72,7 @@ $qnnConfigDetailsPath        = "$rootDirPath\qnnConfigDetails.json"
 $modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
 
 # Define the SDK download path.
-$aIEngineSdkDownloadPath = "$downloadDirPath\qairt\2.28.0.241029"
+$aIEngineSdkDownloadPath = "$downloadDirPath\qairt\2.27.0.240926"
 
 # QNN SDK installation path
 $aIEngineSdkInstallPath = "C:\Qualcomm\AIStack\QAIRT"
@@ -89,7 +90,7 @@ $cmakeInstallPath = "C:\Program Files\CMake"
 $QAIRT_VENV_Path = "$rootDirPath\QAIRT_VENV"
 
 # Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
-$QNN_SDK_VERSION = "2.28.0.241029"
+$QNN_SDK_VERSION = "2.27.0.240926"
 
 
 $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
@@ -360,6 +361,8 @@ Function download_and_extract {
          # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
+        # Remove the downloaded ZIP file
+        Remove-Item -Path $zipFilePath
     }  
 }
 ############################## Main code ##################################
@@ -389,10 +392,10 @@ Function download_install_python {
         else{
             Write-Output "installing python..."
             if (install_python) {
-                Write-Output "Python 3.10.4 installed successfully." 
+                Write-Output "Python 3.10.9 installed successfully." 
             }
             else{
-                Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
+                Write-Output "Python installation failed.. Please installed python 3.10.9 from : $pythonDownloaderPath"  
             }
         }
     }
