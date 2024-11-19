@@ -6,28 +6,14 @@
 #
 # =============================================================================
 
-<#  The onnx_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
+<#  
+    The onnx_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
     Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
     Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
     They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
     It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
     The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
     By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created. 
-
-    Each tutorial section will have its own individual Python environment:
-
-    - ORT CPU EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-    - ORT DML EP: Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-    - ORT QNN EP: Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
-    - Hugging Face Optimum: Uses SDX_HF_ENV, which has specific Python package dependencies.
-
-    Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
-    For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
-    Users are advised to create separate Python environments for each case.
-
-    Define the paths for each environment 
-	
-    Note: Users can change this path to another location if desired.
 #>
 
 # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -35,6 +21,7 @@ Set-ExecutionPolicy RemoteSigned
 
 
 ############################ Define the URL for download ##################################
+
 # URL for downloading the python 3.12.6 
 <#  For Python 3.12.6 dependency:
     - Any version of Python can be used for AMD architecture.
@@ -52,13 +39,18 @@ $modelUrl =  "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mob
 # URL for downloading the Visual Studio Redistributable for ARM64. Visual studio is used during model exection on HTP(NPU) backend.
 $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
 
-<#  Artifacts for tutorials, including:
+<# Required files 
     - onnx_setup.ps1      : onnx_setup script for environment activation
+    - License             : License document
+#>
+$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/onnx_setup.ps1"
+$licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
+
+<#  Artifacts for tutorials, including:
     - kitten.jpg          : Test image for prediction.
     - qc_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
     - imagenet_classes.txt: Image label file for post-processing.
 #>
-$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/onnx_setup.ps1"
 $kittenUrl         = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
 $qc_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
 $imagenetLabelsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
@@ -72,9 +64,76 @@ $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312
 $pythonScriptsPath = $pythonPath+"\Scripts"
 
 
+<#
+    Each tutorial section will have its own individual Python environment:
+
+    - ORT CPU EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT DML EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT QNN EP           : Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
+    - Hugging Face Optimum : Uses SDX_HF_ENV, which has specific Python package dependencies.
+
+    Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
+    For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
+    Users are advised to create separate Python environments for each case.
+
+    Define the paths for each environment to be created in the root directory 
+	
+    Note: Users can change this path to another location if desired.
+#>
+
+$ORT_CPU_ENV_Path = "Python_Venv\SDX_ORT_CPU_ENV"
+$ORT_DML_ENV_Path = "Python_Venv\SDX_ORT_DML_ENV"
+$ORT_QNN_ENV_Path = "Python_Venv\SDX_QNN_CPU_ENV"
+$ORT_HF_ENV_Path  = "Python_Venv\SDX_HF_CPU_ENV"
 
 ####################################################################################
 ############################      Function        ##################################
+
+
+Function Set_Variables {
+    param (
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+    )
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $rootDirPath)) {
+        New-Item -ItemType Directory -Path $rootDirPath
+    }
+    Set-Location -Path $rootDirPath
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:downloadDirPath = "$rootDirPath\Downloads"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $downloadDirPath)) {
+        New-Item -ItemType Directory -Path $downloadDirPath
+    }
+    # Define the path where the installer will be downloaded.
+    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
+    $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
+
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:scriptsDirPath = "$rootDirPath\Scripts"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $scriptsDirPath)) {
+        New-Item -ItemType Directory -Path $scriptsDirPath
+    }
+    $global:onnxSetupPath      = "$scriptsDirPath\onnx_setup.ps1"
+    
+    # Define the license download path.
+    $global:lincensePath      = "$rootDirPath\License"
+
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:mobilenetFolder = "$rootDirPath\ONNX_Runtime_Workspace\Mobilenet_V2"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $mobilenetFolder)) {
+        New-Item -ItemType Directory -Path $mobilenetFolder
+    }
+    # Define the artifacts download path.
+    $global:kittenPath         = "$mobilenetFolder\kitten.jpg"
+    $global:qc_utilsPath       = "$mobilenetFolder\qc_utils.py"
+    $global:imagenetLabelsPath = "$mobilenetFolder\imagenet_classes.txt"
+    # Define the mobilenet model download path.
+    $global:modelFilePath      = "$mobilenetFolder\mobilenet_v2.onnx"
+    
+}
 
 Function download_file {
     param (
@@ -132,11 +191,11 @@ Function install_python {
     }
 }
 
-Function download_artifacts{
-    param ()
+Function download_script_license{
+    param()
     process{
-        # onnx setup for mobilenet example
-        # Checking if qnn setup already present 
+        # onnx setup script
+        # Checking if onn setup already present 
         # If yes
         if(Test-Path $onnxSetupPath){
             Write-Output "onnx setup is already downloaded at : $onnxSetupPath"
@@ -151,6 +210,28 @@ Function download_artifacts{
                 Write-Output "onnx setup download failed. Download from $onnxScriptUrl"
             }
         }
+        # License 
+        # Checking if License already present 
+        # If yes
+        if(Test-Path $lincensePath){
+            Write-Output "onnx setup is already downloaded at : $lincensePath"
+        }
+        # Else dowloading
+        else{
+            $result = download_file -url $licenseUrl -downloadfile $lincensePath
+            if($result){
+                Write-Output "onnx setup is downloaded at : $lincensePath"
+            }
+            else{
+                Write-Output "onnx setup download failed. Download from $licenseUrl"
+            }
+        }
+    }
+}
+
+Function download_mobilenet_artifacts{
+    param ()
+    process{
         # Kitten image for mobilenet example
         # Checking if kitten.jpg already present 
         # If yes
@@ -286,40 +367,16 @@ Function download_install_redistributable {
     }
 }
 
+Function mobilenet_artifacts{
+    param ()
+    process {
+        download_onnxmodel
+        download_mobilenet_artifacts
+    }
+}
 
 ############################## Main code ##################################]
 
-Function Set_Variables {
-    param (
-        [string]$rootDirPath = "C:\Qualcomm_AI"
-    )
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $rootDirPath)) {
-        New-Item -ItemType Directory -Path $rootDirPath
-    }
-    Set-Location -Path $rootDirPath
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:downloadDirPath = "$rootDirPath\Downloaded_file"
-
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $downloadDirPath)) {
-        New-Item -ItemType Directory -Path $downloadDirPath
-    }
-
-    # Define the mobilenet model download path.
-    $global:modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
-
-    # Define the artifacts download path.
-    $global:onnxSetupPath      = "$rootDirPath\onnx_setup.ps1"
-    $global:kittenPath         = "$rootDirPath\kitten.jpg"
-    $global:qc_utilsPath       = "$rootDirPath\qc_utils.py"
-    $global:imagenetLabelsPath = "$rootDirPath\imagenet_classes.txt"
-
-    # Define the path where the installer will be downloaded.
-    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
-    $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
-
-}
 
 Function ORT_CPU_Setup {
     param(
@@ -328,10 +385,10 @@ Function ORT_CPU_Setup {
     process {
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
-        download_onnxmodel
-        download_artifacts
         download_install_redistributable
-        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\SDX_ORT_CPU_ENV"
+        download_script_license
+        mobilenet_artifacts
+        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_CPU_ENV_Path))
         {
@@ -344,32 +401,150 @@ Function ORT_CPU_Setup {
             python -m pip install --upgrade pip
             pip install onnxruntime
             pip install pillow
-            # deactivate
         }
         Write-Output "***** Installation successful for ORT-CPU *****"
     }
 }
 
-Function ORT_CPU_VENV_Activate {
+Function Activate_ORT_CPU_VENV {
     param ( 
         [string]$rootDirPath = "C:\Qualcomm_AI" 
     )
     process {
-        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\SDX_ORT_CPU_ENV"
-        cd $rootDirPath
+        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\ONNX_Runtime_Workspace\Mobilenet_V2"
         & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
-        $global:DIR_PATH = $rootDirPath
+    }  
+}
+
+Function ORT_DML_Setup {
+    param(
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+        )
+    process {
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        download_install_redistributable
+        download_script_license
+        mobilenet_artifacts
+        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_DML_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_DML_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install onnxruntime-directml
+            pip install pillow
+        }
+        Write-Output "***** Installation successful for ORT-DML *****"
+    }
+}
+
+Function Activate_ORT_DML_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\Qualcomm_AI" 
+    )
+    process {
+        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\ONNX_Runtime_Workspace\Mobilenet_V2"
+        & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+    }  
+}
+
+Function ORT_HF_Setup {
+    param(
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+        )
+    process {
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        download_install_redistributable
+        download_script_license
+        $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_HF_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_HF_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install optimum[onnxruntime]
+            pip install onnxruntime-directml
+            pip install pillow 
+        }
+        Write-Output "***** Installation successful for Hugging Face Optimum + ONNX-RT *****"
+    }
+}
+
+Function Activate_ORT_HF_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\Qualcomm_AI" 
+    )
+    process {
+        $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
+        $global:DIR_PATH     = $rootDirPath
+        cd "$DIR_PATH\ONNX_Runtime_Workspace\Mobilenet_V2"
+        & "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1"
+    }  
+}
+
+Function ORT_QNN_Setup {
+    param(
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+        )
+    process {
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        download_install_redistributable
+        download_script_license
+        mobilenet_artifacts
+        $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_QNN_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_QNN_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install onnxruntime-qnn
+            pip install pillow
+        }
+        Write-Output "***** Installation successful for ONNX-QNN *****"
+    }
+}
+
+Function Activate_ORT_QNN_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\Qualcomm_AI" 
+    )
+    process {
+        $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\ONNX_Runtime_Workspace\Mobilenet_V2"
+        & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
     }  
 }
 
 <#
 ------------------Commands to execute-------------
-$TARGET_DIR_PATH = "C:\Qualcomm_AI_Test"        
-$FOLDER_NAME = "Mobilenet"
-$DIR_PATH  = $TARGET_DIR_PATH\$FOLDER_NAME
+$DIR_PATH  = "C:\Qualcomm_Test"
 (Folder creation is handled internally)
 Setup Script:
 powershell -command "&{. .\onnx_setup.ps1; ORT_CPU_Setup -rootDirPath $DIR_PATH}"
 Activate Env:
-powershell -NoExit -command "&{cd $DIR_PATH; . .\onnx_setup.ps1; ORT_CPU_VENV_Activate -rootDirPath $DIR_PATH}"
+$DIR_PATH  = "C:\Qualcomm_Test"
+powershell -NoExit -command "&{cd $DIR_PATH; . .Scripts\onnx_setup.ps1; Activate_ORT_CPU_VENV -rootDirPath $DIR_PATH}"
 #>
