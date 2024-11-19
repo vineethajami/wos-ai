@@ -43,7 +43,7 @@ $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
     - onnx_setup.ps1      : onnx_setup script for environment activation
     - License             : License document
 #>
-$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/onnx_setup.ps1"
+$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/onnx_setup_test.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -110,12 +110,12 @@ Function Set_Variables {
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$rootDirPath\Scripts"
+    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
     }
-    $global:onnxSetupPath      = "$scriptsDirPath\onnx_setup.ps1"
+    $global:onnxSetupPath      = "$scriptsDirPath\onnx_setup_test.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -546,5 +546,5 @@ Setup Script:
 powershell -command "&{. .\onnx_setup.ps1; ORT_CPU_Setup -rootDirPath $DIR_PATH}"
 Activate Env:
 $DIR_PATH  = "C:\Qualcomm_Test"
-powershell -NoExit -command "&{cd $DIR_PATH; . .Scripts\onnx_setup.ps1; Activate_ORT_CPU_VENV -rootDirPath $DIR_PATH}"
+powershell -NoExit -command "&{cd $DIR_PATH; . .\Downloads\Setup_Scripts\onnx_setup_test.ps1; Activate_ORT_CPU_VENV -rootDirPath $DIR_PATH}"
 #>
