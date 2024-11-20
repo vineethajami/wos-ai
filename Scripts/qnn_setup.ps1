@@ -106,7 +106,7 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $downloadDirPath
     }
     # Define the path where the installer will be downloaded.
-    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe"
+    $global:pythonDownloaderPath = "$downloadDirPath\python-3.10.4-amd64.exe"
     $global:cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
     $global:vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
 
