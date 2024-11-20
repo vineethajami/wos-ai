@@ -147,7 +147,7 @@ Function Set_Variables {
     $global:backendExtensionDetailsPath = "$qnnartifactsPath\backendExtensionDetails.json"
     $global:qnnConfigDetailsPath        = "$qnnartifactsPath\qnnConfigDetails.json"
 
-    $global:qnndependenciesPath            = "$rootDirPath\Models\qnn_dependencies"
+    $global:qnndependenciesPath            = "$rootDirPath\Models\QNN_Dependencies"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $qnndependenciesPath )) {
         New-Item -ItemType Directory -Path $qnndependenciesPath
