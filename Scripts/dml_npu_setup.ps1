@@ -9,8 +9,7 @@
 <#  dml_npu_setup.ps1 script for installing dependencies required for executing a sample application using DML EP on NPU. 
     Users can modify values such as installer paths etc.
 
-    By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded.
-    Note: Users can change this path to another location if desired.
+
 #>
 
 # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -28,11 +27,9 @@ $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.47.0.wind
 # Visual Studio dependency 
 $vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
 
-# Define working directory where all files will be stored and used in the tutorial. Users can change this path to their desired location.
-$rootDirPath = "C:\Qualcomm_AI"
 
-# Define download directory inside the working directory for downloading all dependency files and SDK
-$downloadDirPath = "$rootDirPath\Downloaded_file"
+# Define download directory for downloading executable files of required dependencies
+$downloadDirPath = "$env:USERPROFILE\Downloads\dml_npu_downloads"
 
 # Define paths for downloaded installers
 $cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
@@ -56,7 +53,7 @@ $global:CHECK_RESULT = 1
 $global:tools = @{}
 $global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" )
 
-# Create the Root folder if it doesn't exist
+# Create the download folder if it doesn't exist
 if (-Not (Test-Path $downloadDirPath)) {
     New-Item -ItemType Directory -Path $downloadDirPath
 }
@@ -304,21 +301,7 @@ Function download_file {
     }
 }
  
-Function download_and_extract {
-    param (
-        [string]$artifactsUrl,
-        [string]$rootDirPath
-    )
-    process {
-        $zipFilePath = "$rootDirPath\downloaded.zip"
-        # Download the ZIP file
-        Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
 
-         # Extract the ZIP file
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
-    }  
-}
 ############################## Main code ##################################
 
 
