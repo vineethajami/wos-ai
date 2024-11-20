@@ -111,7 +111,7 @@ Function Set_Variables {
     $global:vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
 
     # Define the SDK download path.
-    $aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
+    $global:aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
     $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
