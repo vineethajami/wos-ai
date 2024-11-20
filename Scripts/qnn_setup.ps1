@@ -655,21 +655,22 @@ Function download_install_VS_Studio {
 Function download_install_AI_Engine_Direct_SDK {
     param()
     process {
-        $folderName = [System.IO.Path]::GetFileName($aIEngineSdkDownloadPath)
-        $destinationPath = Join-Path -Path $aIEngineSdkInstallPath -ChildPath $folderName
+        
         # Checking if AI Engine Direct SDK already installed
         # If yes
-        if (Test-Path $destinationPath) {
-            Write-Output "AI Engine Direct already present at :$destinationPath" # -ForegroundColor Green
+	$SDK_Path = "$aIEngineSdkInstallPath\$QNN_SDK_Version"
+        if (Test-Path $SDK_Path) {
+            Write-Output "AI Engine Direct already present at :$SDK_Path" # -ForegroundColor Green
         }
         # Else downloading and installing AI Engine Direct SDK
         else {
-            Write-Output "Downloading the AI Engine Direct..." 
-            #Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonDownloaderPath 
+            Write-Output "Downloading the AI Engine Direct..."
             $result = download_and_extract -artifactsUrl $aIEngineSdkUrl -rootDirPath $downloadDirPath
             # Checking for successful download
             if ($result) {
-                Write-Output " AI Engine Direct Artifacts File is downloaded and extracted at : $downloadDirPath" 
+                Write-Output " AI Engine Direct Artifacts File is downloaded and extracted at : $downloadDirPath"
+		$folderName = [System.IO.Path]::GetFileName($aIEngineSdkDownloadPath)
+        	$destinationPath = Join-Path -Path $aIEngineSdkInstallPath -ChildPath $folderName
                 if (-Not (Test-Path -Path $aIEngineSdkInstallPath)) {
                     New-Item -Path $aIEngineSdkInstallPath -ItemType Directory
                 }
