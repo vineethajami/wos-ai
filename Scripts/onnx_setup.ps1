@@ -112,7 +112,7 @@ Function Set_Variables {
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Scripts"
+    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
@@ -216,16 +216,16 @@ Function download_script_license{
         # Checking if License already present 
         # If yes
         if(Test-Path $lincensePath){
-            Write-Output "onnx setup is already downloaded at : $lincensePath"
+            Write-Output "License is already downloaded at : $lincensePath"
         }
         # Else dowloading
         else{
             $result = download_file -url $licenseUrl -downloadfile $lincensePath
             if($result){
-                Write-Output "onnx setup is downloaded at : $lincensePath"
+                Write-Output "License is downloaded at : $lincensePath"
             }
             else{
-                Write-Output "onnx setup download failed. Download from $licenseUrl"
+                Write-Output "License download failed. Download from $licenseUrl"
             }
         }
     }
