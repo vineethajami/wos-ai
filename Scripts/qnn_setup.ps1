@@ -15,8 +15,10 @@
     Note: Users can modify values such as rootDirPath, QNN SDK version, etc, if desired
 #>
 
-# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-Set-ExecutionPolicy RemoteSigned
+
+
+# Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
+$QNN_SDK_VERSION = "2.27.0.240926"
 
 # Define URLs for dependencies
 
@@ -25,6 +27,16 @@ $pythonUrl = "https://www.python.org/ftp/python/3.10.4/python-3.10.4-amd64.exe"
 
 # Cmake 3.30.4 url
 $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
+
+# QNN SDK download link for converting, generating, and executing the model on HTP (NPU) backend
+$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v$QNN_SDK_VERSION.zip"
+
+<# Required files 
+    - onnx_setup.ps1      : onnx_setup script for environment activation
+    - License             : License document
+#>
+$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
+$licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
     - kitten.jpg: Test image for prediction.
@@ -43,53 +55,27 @@ $qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/ref
 # ONNX model file for image prediction used in tutorials
 $modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
 
-# QNN SDK download link for converting, generating, and executing the model on HTP (NPU) backend
-$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.28.0.241029.zip"
 
 # Visual Studio dependency for compiling and converting ONNX model to C++ & binary, used for generating model.dll file
 $vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
 
-# Define working directory where all files will be stored and used in the tutorial. Users can change this path to their desired location.
-$rootDirPath = "C:\Qualcomm_AI"
-
-# Define download directory inside the working directory for downloading all dependency files and SDK
-$downloadDirPath = "$rootDirPath\Downloaded_file"
-
-# Define paths for downloaded installers
-$pythonDownloaderPath = "$downloadDirPath\python-3.10.4-amd64.exe"
-$cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
-$vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
-
-# Define the artifacts download path.
-$kittenPath                  = "$rootDirPath\kitten.jpg"
-$qc_utilsPath                = "$rootDirPath\qc_utils.py"
-$imagenetLabelsPath          = "$rootDirPath\imagenet_classes.txt"
-$backendExtensionDetailsPath = "$rootDirPath\backendExtensionDetails.json"
-$qnnConfigDetailsPath        = "$rootDirPath\qnnConfigDetails.json"
-
-# Define the mobilenet model download path.
-$modelFilePath = "$rootDirPath\mobilenet_v2.onnx"
-
-# Define the SDK download path.
-$aIEngineSdkDownloadPath = "$downloadDirPath\qairt\2.28.0.241029"
-
 # QNN SDK installation path
 $aIEngineSdkInstallPath = "C:\Qualcomm\AIStack\QAIRT"
 
+# Define the python installation path.
 # Retrieves the value of the Username
 $username = (Get-ChildItem Env:\Username).value
-
-# Define the python installation path.
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python310"
 $pythonScriptsPath = $pythonPath+"\Scripts"
 
 # Define the cmake installation path.
 $cmakeInstallPath = "C:\Program Files\CMake"
-# Define Python QAIRT_VENV environment path. This environment will be used to install QNN SDK dependencies and tutorial-related dependencies.
-$QAIRT_VENV_Path = "$rootDirPath\QAIRT_VENV"
 
-# Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
-$QNN_SDK_VERSION = "2.28.0.241029"
+# Define Python QAIRT_VENV environment path in the root directory. This environment will be used to install QNN SDK dependencies and tutorial-related dependencies.
+$QAIRT_VENV_Path = "Python_Venv\QAIRT_VENV"
+
+# Define Mobilenet path in the root directory.
+$Mobilenet_Folder_path = "Models\Mobilenet_V2"
 
 
 $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
@@ -101,14 +87,72 @@ $global:CHECK_RESULT = 1
 $global:tools = @{}
 $global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" )
 
-# Create the Root folder if it doesn't exist
-if (-Not (Test-Path $downloadDirPath)) {
-    New-Item -ItemType Directory -Path $downloadDirPath
-}
-
 
 ############################ Function ##################################
 
+Function Set_Variables {
+    param (
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+    )
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $rootDirPath)) {
+        New-Item -ItemType Directory -Path $rootDirPath
+    }
+    Set-Location -Path $rootDirPath
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:downloadDirPath = "$rootDirPath\Downloads"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $downloadDirPath)) {
+        New-Item -ItemType Directory -Path $downloadDirPath
+    }
+    # Define the path where the installer will be downloaded.
+    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe"
+    $global:cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
+    $global:vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
+
+    # Define the SDK download path.
+    $aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
+
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $scriptsDirPath)) {
+        New-Item -ItemType Directory -Path $scriptsDirPath
+    }
+    $global:onnxSetupPath      = "$scriptsDirPath\qnn_setup.ps1"
+    
+    # Define the license download path.
+    $global:lincensePath      = "$rootDirPath\License"
+
+    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:mobilenetFolder = "$rootDirPath\$Mobilenet_Folder_path"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $mobilenetFolder)) {
+        New-Item -ItemType Directory -Path $mobilenetFolder
+    }
+    # Define the artifacts download path.
+    $global:kittenPath                  = "$mobilenetFolder\kitten.jpg"
+    $global:qc_utilsPath                = "$mobilenetFolder\qc_utils.py"
+    $global:imagenetLabelsPath          = "$mobilenetFolder\imagenet_classes.txt"
+    
+
+    # Define the mobilenet model download path.
+    $global:modelFilePath               = "$mobilenetFolder\mobilenet_v2.onnx"
+
+    $global:qnnartifactsPath            = "$mobilenetFolder\qnn_artifacts"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $qnnartifactsPath )) {
+        New-Item -ItemType Directory -Path $qnnartifactsPath
+    }
+    $global:backendExtensionDetailsPath = "$qnnartifactsPath\backendExtensionDetails.json"
+    $global:qnnConfigDetailsPath        = "$qnnartifactsPath\qnnConfigDetails.json"
+
+    $global:qnndependenciesPath            = "$rootDirPath\Models\qnn_dependencies"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $qnndependenciesPath )) {
+        New-Item -ItemType Directory -Path $qnndependenciesPath
+    }
+}
 
 Function install_VS_Studio {
     param()
@@ -368,31 +412,28 @@ Function download_and_extract {
 Function download_install_python {
     param()
     process {
-        # Download the python file 
-        if (Test-Path $pythonDownloaderPath) {
-            Write-Output "Python file already present at : $pythonDownloaderPath" # -ForegroundColor Green
-        }
-        else {
-                Write-Output "Downloading the python file ..." 
-                $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
-                if ($result) {
-                    Write-Output "Python File is downloaded at : $pythonDownloaderPath" 
-                } 
-                else{
-                    Write-Output "Python download failed. Download the python file from :  $pythonUrl" 
-                }
-        }
-        # Install python
+        # Check if python already installed
+        # If Yes
         if (Test-Path "$pythonInstallPath\python.exe") {
             Write-Output "Python already installed."
         }
+        # Else downloading and installing python
         else{
-            Write-Output "installing python..."
-            if (install_python) {
-                Write-Output "Python 3.10.4 installed successfully." 
-            }
+            Write-Output "Downloading the python file ..." 
+            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Python File is downloaded at : $pythonDownloaderPath"
+                Write-Output "Installing python..."
+                if (install_python) {
+                    Write-Output "Python 3.10.4 installed successfully." 
+                }
+                else {
+                    Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
+                }
+            } 
             else{
-                Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
+                Write-Output "Python download failed. Download the python file from : $pythonUrl and install." 
             }
         }
     }
@@ -403,31 +444,28 @@ Function download_install_python {
 Function download_install_cmake {
     param()
     process {
-        # Download the CMake file
-        if (Test-Path $cmakeDownloaderPath) {
-            Write-Output "CMake file already present at : $cmakeDownloaderPath"
-        }
-        else {
-            Write-Output "Downloading the CMake file ..."
-            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
-            if ($result) {
-                Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
-            }
-            else {
-                Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl"
-            }
-        }
-        # Install CMake
+        # Checking if CMake already installed
+        # If yes
         if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
             Write-Output "CMake already installed."
         }
+        # Else downloading and installing CMake
         else {
-            Write-Output "Installing CMake..."
-            if (install_cmake) {
-                Write-Output "CMake 3.30.4 installed successfully."
+            Write-Output "Downloading the CMake file ..."
+            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
+                Write-Output "Installing CMake..."
+                if (install_cmake) {
+                    Write-Output "CMake 3.30.4 installed successfully."
+                }
+                else {
+                    Write-Output "CMake installation failed. Please install CMake 3.30.4 from : $cmakeDownloaderPath"
+                }
             }
             else {
-                Write-Output "CMake installation failed. Please install CMake 3.30.4 from : $cmakeDownloaderPath"
+                Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl and install."
             }
         }
     }
@@ -438,12 +476,16 @@ Function download_onnxmodel {
     param()
     process {
         # Download Model file 
+        # Checking if mobilenet.onnx already present 
+        # If yes
         if (Test-Path $modelFilePath) {
             Write-Output "ONNX File already present at : $modelFilePath" # -ForegroundColor Green
         }
+        # Else downloading
         else {
             Write-Output "Downloading the onnx model ..." 
             $result = download_file -url $modelUrl -downloadfile $modelFilePath
+            # Checking for successful download
             if ($result) {
                 Write-Output "Onnx File is downloaded at : $modelFilePath" 
 
@@ -455,13 +497,55 @@ Function download_onnxmodel {
     }
 }
 
-Function download_artifacts{
+Function download_script_license{
+    param()
+    process{
+        # onnx setup script
+        # Checking if onn setup already present 
+        # If yes
+        if(Test-Path $onnxSetupPath){
+            Write-Output "onnx setup is already downloaded at : $onnxSetupPath"
+        }
+        # Else dowloading
+        else{
+            $result = download_file -url $onnxScriptUrl -downloadfile $onnxSetupPath
+            if($result){
+                Write-Output "onnx setup is downloaded at : $onnxSetupPath"
+            }
+            else{
+                Write-Output "onnx setup download failed. Download from $onnxScriptUrl"
+            }
+        }
+        # License 
+        # Checking if License already present 
+        # If yes
+        if(Test-Path $lincensePath){
+            Write-Output "License is already downloaded at : $lincensePath"
+        }
+        # Else dowloading
+        else{
+            $result = download_file -url $licenseUrl -downloadfile $lincensePath
+            if($result){
+                Write-Output "License is downloaded at : $lincensePath"
+            }
+            else{
+                Write-Output "License download failed. Download from $licenseUrl"
+            }
+        }
+    }
+}
+
+Function download_mobilenet_artifacts{
     param ()
     process{
+        
         # Kitten image for mobilenet example
+        # Checking if kitten.jpg already present 
+        # If yes
         if(Test-Path $kittenPath){
             Write-Output "Kitten image is already downloaded at : $kittenPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $kittenUrl -downloadfile $kittenPath
             if($result){
@@ -472,9 +556,12 @@ Function download_artifacts{
             }
         }
         # qc_utils for pre and post processing for the mobilenet 
+        # Checking if qc_utils.py already present
+        # If yes
         if(Test-Path $qc_utilsPath){
             Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
             if($result){
@@ -485,6 +572,8 @@ Function download_artifacts{
             }
         }
         # Imagenet labels
+        # Checking if imagenet.txt already present
+        # If yes
         if(Test-Path $imagenetLabelsPath){
             Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
         }
@@ -498,9 +587,12 @@ Function download_artifacts{
             }
         }
         # backendExtensionDetails.json
+        # Checking if backendExtensionDetails.json already present
+        # If yes
         if(Test-Path $backendExtensionDetailsPath){
             Write-Output "backendExtensionDetails.json is already downloaded at : $backendExtensionDetailsPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $backendExtensionDetailsUrl -downloadfile $backendExtensionDetailsPath
             if($result){
@@ -511,9 +603,12 @@ Function download_artifacts{
             }
         }
         # qnnConfigDetails.json
+        # Checking if qnnConfigDetails.json already present
+        # If yes
         if(Test-Path $qnnConfigDetailsPath){
             Write-Output "qnnConfigDetails.json is already downloaded at : $qnnConfigDetailsPath"
         }
+        # Else dowloading
         else{
             $result = download_file -url $qnnConfigDetailsUrl -downloadfile $qnnConfigDetailsPath
             if($result){
@@ -529,25 +624,18 @@ Function download_artifacts{
 Function download_install_VS_Studio {
     param()
     process {
-            # Download VS Studio file
-            if (Test-Path $vsStudioDownloadPath) {
-                Write-Output "VS Studio already present at : $vsStudioDownloadPath" # -ForegroundColor Green
-            }
-            else {
-                    Write-Output "Downloading the VS Studio..." 
-                    $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
-                    if ($result) {
-                        Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
-                    } 
-                    else{
-                        Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl" 
-                    }
-            }
-            # Install VS-Studio
-            if (Test-Path $vsInstallerPath) {
-                Write-Output "VS-Studio already installed."
-            }
-            else{
+        # Checking if VStudio already installed
+        # If yes
+        if (Test-Path $vsInstallerPath) {
+            Write-Output "VS-Studio already installed."
+        }
+        # Else downloading and installing VStudio
+        else {
+            Write-Output "Downloading the VS Studio..." 
+            $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
                 Write-Output "installing VS-Studio..."
                 if (install_VS_Studio) {
                     Write-Output "VS-Studio installed successfully." 
@@ -555,7 +643,11 @@ Function download_install_VS_Studio {
                 else{
                     Write-Output "VS-Studio installation failed..  from : $vsStudioDownloadPath"  
                 }
+            } 
+            else{
+                Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl and install." 
             }
+        }
     }
 }
 
@@ -563,57 +655,70 @@ Function download_install_VS_Studio {
 Function download_install_AI_Engine_Direct_SDK {
     param()
     process {
-        if (Test-Path $aIEngineSdkDownloadPath) {
-            Write-Output "AI Engine Direct already present at : $aIEngineSdkDownloadPath" # -ForegroundColor Green
+        $folderName = [System.IO.Path]::GetFileName($aIEngineSdkDownloadPath)
+        $destinationPath = Join-Path -Path $aIEngineSdkInstallPath -ChildPath $folderName
+        # Checking if AI Engine Direct SDK already installed
+        # If yes
+        if (Test-Path $destinationPath) {
+            Write-Output "AI Engine Direct already present at :$destinationPath" # -ForegroundColor Green
         }
+        # Else downloading and installing AI Engine Direct SDK
         else {
             Write-Output "Downloading the AI Engine Direct..." 
             #Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonDownloaderPath 
             $result = download_and_extract -artifactsUrl $aIEngineSdkUrl -rootDirPath $downloadDirPath
+            # Checking for successful download
             if ($result) {
                 Write-Output " AI Engine Direct Artifacts File is downloaded and extracted at : $downloadDirPath" 
+                if (-Not (Test-Path -Path $aIEngineSdkInstallPath)) {
+                    New-Item -Path $aIEngineSdkInstallPath -ItemType Directory
+                }
+                if (-Not (Test-Path -Path $destinationPath)) {
+                    Move-Item -Path $aIEngineSdkDownloadPath -Destination $destinationPath
+                    Write-Output "AI Engine Direct installed successfully to $destinationPath"
+                }
             }
-            else {
-                Write-Output " AI Engine Direct Artifacts  are already present" 
+            else{
+                Write-Output "AI Engine Direct download failed... Downloaded the AI Engine Direct SDK from : $aIEngineSdkUrl and extract to $destinationPath " 
             }
-        }
-        $folderName = [System.IO.Path]::GetFileName($aIEngineSdkDownloadPath)
-        $destinationPath = Join-Path -Path $aIEngineSdkInstallPath -ChildPath $folderName
-
-        if (-Not (Test-Path -Path $aIEngineSdkInstallPath)) {
-            New-Item -Path $aIEngineSdkInstallPath -ItemType Directory
-        }
-
-        if (-Not (Test-Path -Path $destinationPath)) {
-            Move-Item -Path $aIEngineSdkDownloadPath -Destination $destinationPath
-            Write-Output "AI Engine Direct installed successfully to $destinationPath"
-        } 
-        else {
-            Write-Output "AI Engine Direct already exists at $destinationPath"
         }
     }
 }
 
+Function mobilenet_artifacts{
+    param ()
+    process {
+        download_onnxmodel
+        download_mobilenet_artifacts
+    }
+}
 
 
 ############################## main code ##################################
 
+
 Function QNN_Setup{
-    param()
+    param(
+        [string]$rootDirPath = "C:\Qualcomm_AI"
+    )
     process{
+        # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+        Set-ExecutionPolicy RemoteSigned
+        Set_Variables -rootDirPath $rootDirPath
         download_install_python
-        download_onnxmodel
-        download_artifacts
         download_install_VS_Studio
         download_install_AI_Engine_Direct_SDK
 	    download_install_cmake
+        download_script_license
+        mobilenet_artifacts
+        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
         # Check if virtual environment was created
-        if (-Not (Test-Path -Path $QAIRT_VENV_Path))
+        if (-Not (Test-Path -Path $SDX_QAIRT_VENV_Path))
         {
-            py -3.10 -m venv $QAIRT_VENV_Path
+            py -3.10 -m venv $SDX_QAIRT_VENV_Path
         }
-        if (Test-Path "$QAIRT_VENV_Path\Scripts\Activate.ps1") {
-            & "$QAIRT_VENV_Path\Scripts\Activate.ps1" 
+        if (Test-Path "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1") {
+            & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1" 
             # upgrade pip
             python -m pip install --upgrade pip
             #update the QNN version in the below command as needed. 
@@ -632,11 +737,27 @@ Function QNN_Setup{
             # checking all python dependency 
             python "${QNN_SDK_ROOT}\bin\check-python-dependency"
             # checking all winndow dependency
-            & "${QNN_SDK_ROOT}/bin/check-windows-dependency.ps1"
-
+            & "${QNN_SDK_ROOT}\bin\check-windows-dependency.ps1"
+            copy ${QNN_SDK_ROOT}\bin\aarch64-windows-msvc\qnn-net-run.exe ${qnndependenciesPath}
+            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtp.dll ${qnndependenciesPath}
+            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtpV73Stub.dll ${qnndependenciesPath}
+            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtpPrepare.dll ${qnndependenciesPath}
+            copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libQnnHtpV73Skel.so ${qnndependenciesPath}
+            copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libqnnhtpv73.cat ${qnndependenciesPath}
         }
         Write-Output "***** Installation successful for  AI Engine Direct QNN *****"
     }
 }
 
-QNN_Setup
+Function Activate_QNN_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\Qualcomm_AI" 
+    )
+    process {
+        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\$Mobilenet_Folder_path"
+        & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1"
+        & C:\Qualcomm\AIStack\QAIRT\$QNN_SDK_VERSION\bin\envsetup.ps1
+    }  
+}
