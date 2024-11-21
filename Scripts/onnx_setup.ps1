@@ -51,9 +51,7 @@ $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/m
     - qc_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
     - imagenet_classes.txt: Image label file for post-processing.
 #>
-$kittenUrl         = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
 $qc_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
-$imagenetLabelsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
 
 
 ############################ python installation path ##################################
@@ -112,7 +110,7 @@ Function Set_Variables {
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Scripts"
+    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
@@ -129,9 +127,7 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $mobilenetFolder
     }
     # Define the artifacts download path.
-    $global:kittenPath         = "$mobilenetFolder\kitten.jpg"
     $global:qc_utilsPath       = "$mobilenetFolder\qc_utils.py"
-    $global:imagenetLabelsPath = "$mobilenetFolder\imagenet_classes.txt"
     # Define the mobilenet model download path.
     $global:modelFilePath      = "$mobilenetFolder\mobilenet_v2.onnx"
     
@@ -234,22 +230,6 @@ Function download_script_license{
 Function download_mobilenet_artifacts{
     param ()
     process{
-        # Kitten image for mobilenet example
-        # Checking if kitten.jpg already present 
-        # If yes
-        if(Test-Path $kittenPath){
-            Write-Output "Kitten image is already downloaded at : $kittenPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $kittenUrl -downloadfile $kittenPath
-            if($result){
-                Write-Output "Kitten image is downloaded at : $kittenPath"
-            }
-            else{
-                Write-Output "Kitten image download failed. Download from $kittenUrl"
-            }
-        }
         # qc_utils for pre and post processing for the mobilenet 
         # Checking if qc_utils.py already present
         # If yes
@@ -264,21 +244,6 @@ Function download_mobilenet_artifacts{
             }
             else{
                 Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
-            }
-        }
-        # Imagenet labels
-        # Checking if imagenet.txt already present
-        # If yes
-        if(Test-Path $imagenetLabelsPath){
-            Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
-        }
-        else{
-            $result = download_file -url $imagenetLabelsUrl -downloadfile $imagenetLabelsPath
-            if($result){
-                Write-Output "Imagenet labels is downloaded at : $imagenetLabelsPath"
-            }
-            else{
-                Write-Output "Imagenet labels download failed. Download from $imagenetLabelsUrl"
             }
         }
     }
