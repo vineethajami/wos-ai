@@ -404,6 +404,7 @@ Function download_and_extract {
          # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
+	return $true
     }  
 }
 ############################## Main code ##################################
