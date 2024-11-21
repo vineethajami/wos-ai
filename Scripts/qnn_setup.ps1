@@ -32,10 +32,10 @@ $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.
 $aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v$QNN_SDK_VERSION.zip"
 
 <# Required files 
-    - onnx_setup.ps1      : onnx_setup script for environment activation
+    - qnn_setup.ps1      : qnn_setup script for environment activation
     - License             : License document
 #>
-$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
+$qnnScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -46,11 +46,9 @@ $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/m
     - qnnConfigDetails.json: 
 #>
 # Define the URL of the file to download
-$kittenUrl                  = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/kitten.jpg"
 $qc_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
-$imagenetLabelsUrl          = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/imagenet_classes.txt"
-$backendExtensionDetailsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/backendExtensionDetails.json"
-$qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qnnConfigDetails.json"
+# $backendExtensionDetailsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/backendExtensionDetails.json"
+# $qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qnnConfigDetails.json"
 
 # ONNX model file for image prediction used in tutorials
 $modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
@@ -114,12 +112,12 @@ Function Set_Variables {
     $global:aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Scripts"
+    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
     }
-    $global:onnxSetupPath      = "$scriptsDirPath\qnn_setup.ps1"
+    $global:qnnSetupPath      = "$scriptsDirPath\qnn_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -131,23 +129,18 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $mobilenetFolder
     }
     # Define the artifacts download path.
-    $global:kittenPath                  = "$mobilenetFolder\kitten.jpg"
     $global:qc_utilsPath                = "$mobilenetFolder\qc_utils.py"
-    $global:imagenetLabelsPath          = "$mobilenetFolder\imagenet_classes.txt"
-    
 
     # Define the mobilenet model download path.
     $global:modelFilePath               = "$mobilenetFolder\mobilenet_v2.onnx"
 
-    $global:qnnartifactsPath            = "$mobilenetFolder\qnn_artifacts"
+    $global:qnnartifactsPath            = "$mobilenetFolder\QNN_Artifacts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $qnnartifactsPath )) {
         New-Item -ItemType Directory -Path $qnnartifactsPath
     }
-    $global:backendExtensionDetailsPath = "$qnnartifactsPath\backendExtensionDetails.json"
-    $global:qnnConfigDetailsPath        = "$qnnartifactsPath\qnnConfigDetails.json"
 
-    $global:qnndependenciesPath            = "$rootDirPath\Models\QNN_Dependencies"
+    $global:qnndependenciesPath         = "$rootDirPath\Models\QNN_Dependencies"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $qnndependenciesPath )) {
         New-Item -ItemType Directory -Path $qnndependenciesPath
@@ -501,20 +494,20 @@ Function download_onnxmodel {
 Function download_script_license{
     param()
     process{
-        # onnx setup script
-        # Checking if onn setup already present 
+        # qnn setup script
+        # Checking if qnn setup already present 
         # If yes
-        if(Test-Path $onnxSetupPath){
-            Write-Output "onnx setup is already downloaded at : $onnxSetupPath"
+        if(Test-Path $qnnSetupPath){
+            Write-Output "qnn setup is already downloaded at : $qnnSetupPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $onnxScriptUrl -downloadfile $onnxSetupPath
+            $result = download_file -url $qnnScriptUrl -downloadfile $qnnSetupPath
             if($result){
-                Write-Output "onnx setup is downloaded at : $onnxSetupPath"
+                Write-Output "qnn setup is downloaded at : $qnnSetupPath"
             }
             else{
-                Write-Output "onnx setup download failed. Download from $onnxScriptUrl"
+                Write-Output "qnn setup download failed. Download from $qnnScriptUrl"
             }
         }
         # License 
@@ -539,23 +532,6 @@ Function download_script_license{
 Function download_mobilenet_artifacts{
     param ()
     process{
-        
-        # Kitten image for mobilenet example
-        # Checking if kitten.jpg already present 
-        # If yes
-        if(Test-Path $kittenPath){
-            Write-Output "Kitten image is already downloaded at : $kittenPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $kittenUrl -downloadfile $kittenPath
-            if($result){
-                Write-Output "Kitten image is downloaded at : $kittenPath"
-            }
-            else{
-                Write-Output "Kitten image download failed. Download from $kittenUrl"
-            }
-        }
         # qc_utils for pre and post processing for the mobilenet 
         # Checking if qc_utils.py already present
         # If yes
@@ -570,53 +546,6 @@ Function download_mobilenet_artifacts{
             }
             else{
                 Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
-            }
-        }
-        # Imagenet labels
-        # Checking if imagenet.txt already present
-        # If yes
-        if(Test-Path $imagenetLabelsPath){
-            Write-Output "Imagenet labels is already downloaded at : $imagenetLabelsPath"
-        }
-        else{
-            $result = download_file -url $imagenetLabelsUrl -downloadfile $imagenetLabelsPath
-            if($result){
-                Write-Output "Imagenet labels is downloaded at : $imagenetLabelsPath"
-            }
-            else{
-                Write-Output "Imagenet labels download failed. Download from $imagenetLabelsUrl"
-            }
-        }
-        # backendExtensionDetails.json
-        # Checking if backendExtensionDetails.json already present
-        # If yes
-        if(Test-Path $backendExtensionDetailsPath){
-            Write-Output "backendExtensionDetails.json is already downloaded at : $backendExtensionDetailsPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $backendExtensionDetailsUrl -downloadfile $backendExtensionDetailsPath
-            if($result){
-                Write-Output "backendExtensionDetails.json is downloaded at : $backendExtensionDetailsPath"
-            }
-            else{
-                Write-Output "backendExtensionDetails.json download failed. Download from $backendExtensionDetailsUrl"
-            }
-        }
-        # qnnConfigDetails.json
-        # Checking if qnnConfigDetails.json already present
-        # If yes
-        if(Test-Path $qnnConfigDetailsPath){
-            Write-Output "qnnConfigDetails.json is already downloaded at : $qnnConfigDetailsPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $qnnConfigDetailsUrl -downloadfile $qnnConfigDetailsPath
-            if($result){
-                Write-Output "qnnConfigDetails.json is downloaded at : $qnnConfigDetailsPath"
-            }
-            else{
-                Write-Output "qnnConfigDetails.json download failed. Download from $qnnConfigDetailsUrl"
             }
         }
     }
