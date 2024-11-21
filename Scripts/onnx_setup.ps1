@@ -112,7 +112,7 @@ Function Set_Variables {
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
+    $global:scriptsDirPath = "$downloadDirPath\Scripts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
