@@ -8,6 +8,7 @@
 
 import numpy as np
 from PIL import Image
+import requests
  
 def preprocess(img_path, nhwc = False):
     """
@@ -21,8 +22,10 @@ def preprocess(img_path, nhwc = False):
     Returns:
         np.ndarray: Preprocessed image as a NumPy array.
     """
+    response = requests.get(img_path, stream=True)
+    response.raw.decode_content = True
     # reading the image
-    img = Image.open(img_path)
+    img = Image.open(response.raw)
     # Resize the image to 224x224
     img = img.resize((224, 224))
     # Convert image to NumPy array and normalize
@@ -54,9 +57,11 @@ def postprocess(output,label_text_path=None):
     """
  
     if label_text_path is None:
-        label_text_path = "imagenet_classes.txt"
-    with open(label_text_path, 'r') as file:
-        labels = [label.rstrip() for label in file]
+        label_text_path = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/imagenet_classes.txt"
+    response = requests.get(label_text_path, stream=True)
+    response.raw.decode_content = True
+    # with open(label_text_path, 'r') as file:
+    labels = [str(s.strip()) for s in response.raw]
     if isinstance(output, str):
         output = np.fromfile(output, dtype=np.float32)
         probabilities = np.exp(output) / np.sum(np.exp(output), axis=0)
