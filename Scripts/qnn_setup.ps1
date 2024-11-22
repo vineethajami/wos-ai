@@ -663,7 +663,8 @@ Function QNN_Setup{
             pip install onnx==1.12.0
             pip install onnxruntime==1.17.1
             pip install onnxsim==0.4.36  
-            pip install fiftyone              
+            pip install fiftyone
+	    pip install requests
             pip install --upgrade opencv-python
             # checking all python dependency 
             python "${QNN_SDK_ROOT}\bin\check-python-dependency"
