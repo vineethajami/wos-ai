@@ -368,6 +368,7 @@ Function ORT_CPU_Setup {
             python -m pip install --upgrade pip
             pip install onnxruntime
             pip install pillow
+	    pip install requests
         }
         Write-Output "***** Installation successful for ORT-CPU *****"
     }
@@ -408,6 +409,7 @@ Function ORT_DML_Setup {
             python -m pip install --upgrade pip
             pip install onnxruntime-directml
             pip install pillow
+	    pip install requests
         }
         Write-Output "***** Installation successful for ORT-DML *****"
     }
@@ -447,7 +449,8 @@ Function ORT_HF_Setup {
             python -m pip install --upgrade pip
             pip install optimum[onnxruntime]
             pip install onnxruntime-directml
-            pip install pillow 
+            pip install pillow
+	    pip install requests
         }
         Write-Output "***** Installation successful for Hugging Face Optimum + ONNX-RT *****"
     }
@@ -488,6 +491,7 @@ Function ORT_QNN_Setup {
             python -m pip install --upgrade pip
             pip install onnxruntime-qnn
             pip install pillow
+	    pip install requests
         }
         Write-Output "***** Installation successful for ONNX-QNN *****"
     }
