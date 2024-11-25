@@ -10,7 +10,7 @@
     The qnn_setup.ps1 PowerShell script automatesthe setup process for Qualcomm's AI Engine Direct by downloading and installing necessary components, including Python, ONNX models, QNN SDK, and various dependencies.
     It creates and activates a virtual environment, upgrades pip, and installs required Python packages. 
     The function also runs scripts to check and ensure all dependencies are correctly set up, providing a complete and successful installation for AI Engine Direct QNN. 
-    By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created.
+    By default, $rootDirPath is set to C:\Wos_AI, where all files will be downloaded and the Python environment will be created.
 	
     Note: Users can modify values such as rootDirPath, QNN SDK version, etc, if desired
 #>
@@ -40,13 +40,13 @@ $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/m
 
 <#  Artifacts for tutorials, including:
     - kitten.jpg: Test image for prediction.
-    - qc_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
+    - io_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
     - imagenet_classes.txt: Image label file for post-processing.
     - backendExtensionDetails.json:
     - qnnConfigDetails.json: 
 #>
 # Define the URL of the file to download
-$qc_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
+$io_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
 # $backendExtensionDetailsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/backendExtensionDetails.json"
 # $qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qnnConfigDetails.json"
 
@@ -90,7 +90,7 @@ $global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\In
 
 Function Set_Variables {
     param (
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\Wos_AI"
     )
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $rootDirPath)) {
@@ -129,7 +129,7 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $mobilenetFolder
     }
     # Define the artifacts download path.
-    $global:qc_utilsPath                = "$mobilenetFolder\qc_utils.py"
+    $global:io_utilsPath                = "$mobilenetFolder\io_utils.py"
 
     # Define the mobilenet model download path.
     $global:modelFilePath               = "$mobilenetFolder\mobilenet_v2.onnx"
@@ -532,20 +532,20 @@ Function download_script_license{
 Function download_mobilenet_artifacts{
     param ()
     process{
-        # qc_utils for pre and post processing for the mobilenet 
-        # Checking if qc_utils.py already present
+        # io_utils for pre and post processing for the mobilenet 
+        # Checking if io_utils.py already present
         # If yes
-        if(Test-Path $qc_utilsPath){
-            Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
+        if(Test-Path $io_utilsPath){
+            Write-Output "io_utils.py is already downloaded at : $io_utilsPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
+            $result = download_file -url $io_utilsUrl -downloadfile $io_utilsPath
             if($result){
-                Write-Output "qc_utils.py is downloaded at : $qc_utilsPath"
+                Write-Output "io_utils.py is downloaded at : $io_utilsPath"
             }
             else{
-                Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
+                Write-Output "io_utils.py download failed. Download from $io_utilsUrl"
             }
         }
     }
@@ -630,7 +630,7 @@ Function mobilenet_artifacts{
 
 Function QNN_Setup{
     param(
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\Wos_AI"
     )
     process{
         # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -683,7 +683,7 @@ Function QNN_Setup{
 
 Function Activate_QNN_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Qualcomm_AI" 
+        [string]$rootDirPath = "C:\Wos_AI" 
     )
     process {
         $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
