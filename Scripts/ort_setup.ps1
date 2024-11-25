@@ -7,7 +7,7 @@
 # =============================================================================
 
 <#  
-    The onnx_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
+    The ort_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
     Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
     Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
     They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
@@ -36,10 +36,10 @@ $modelUrl =  "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mob
 $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
 
 <# Required files 
-    - onnx_setup.ps1      : onnx_setup script for environment activation
+    - ort_setup.ps1      : ort_setup script for environment activation
     - License             : License document
 #>
-$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/onnx_setup.ps1"
+$onnxScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -111,7 +111,7 @@ Function Set_Variables {
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
     }
-    $global:onnxSetupPath      = "$scriptsDirPath\onnx_setup.ps1"
+    $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -188,20 +188,20 @@ Function install_python {
 Function download_script_license{
     param()
     process{
-        # onnx setup script
-        # Checking if onn setup already present 
+        # ort setup script
+        # Checking if ort setup already present 
         # If yes
-        if(Test-Path $onnxSetupPath){
-            Write-Output "onnx setup is already downloaded at : $onnxSetupPath"
+        if(Test-Path $ortSetupPath){
+            Write-Output "ort setup is already downloaded at : $ortSetupPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $onnxScriptUrl -downloadfile $onnxSetupPath
+            $result = download_file -url $onnxScriptUrl -downloadfile $ortSetupPath
             if($result){
-                Write-Output "onnx setup is downloaded at : $onnxSetupPath"
+                Write-Output "ort setup is downloaded at : $ortSetupPath"
             }
             else{
-                Write-Output "onnx setup download failed. Download from $onnxScriptUrl"
+                Write-Output "ort setup download failed. Download from $ortScriptUrl"
             }
         }
         # License 
@@ -407,7 +407,7 @@ Function ORT_DML_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime-directml
+            pip install onnxruntime-directml==1.20.1
             pip install pillow
 	    pip install requests
         }
@@ -493,7 +493,7 @@ Function ORT_QNN_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime-qnn
+            pip install onnxruntime-qnn==1.20.0
             pip install pillow
 	    pip install requests
         }
