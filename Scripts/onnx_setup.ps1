@@ -16,10 +16,6 @@
     By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created. 
 #>
 
-# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-Set-ExecutionPolicy RemoteSigned 
-
-
 ############################ Define the URL for download ##################################
 
 # URL for downloading the python 3.12.6 
@@ -350,6 +346,8 @@ Function ORT_CPU_Setup {
         [string]$rootDirPath = "C:\Qualcomm_AI"
         )
     process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
         download_install_redistributable
@@ -366,7 +364,7 @@ Function ORT_CPU_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime
+            pip install onnxruntime==1.20.1
             pip install pillow
 	    pip install requests
         }
@@ -391,6 +389,8 @@ Function ORT_DML_Setup {
         [string]$rootDirPath = "C:\Qualcomm_AI"
         )
     process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
         download_install_redistributable
@@ -432,6 +432,8 @@ Function ORT_HF_Setup {
         [string]$rootDirPath = "C:\Qualcomm_AI"
         )
     process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
         download_install_redistributable
@@ -473,6 +475,8 @@ Function ORT_QNN_Setup {
         [string]$rootDirPath = "C:\Qualcomm_AI"
         )
     process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
         download_install_redistributable
