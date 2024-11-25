@@ -28,7 +28,7 @@ $condaInstallPath= "C:\ProgramData\miniconda3"
 
 Function Set_Variables {
     param (
-        [string]$rootDirPath = "C:\MLC_LLM_App"
+        [string]$rootDirPath = "C:\WoS_AI"
     )
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $rootDirPath)) {
@@ -131,7 +131,7 @@ Function download_install_conda {
 
 Function MLC_LLM_Setup {
     param(
-        [string]$rootDirPath = "C:\MLC_LLM_App"
+        [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
         Set_Variables -rootDirPath $rootDirPath
