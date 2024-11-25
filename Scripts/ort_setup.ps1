@@ -43,9 +43,7 @@ $ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/ma
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
-    - kitten.jpg          : Test image for prediction.
     - io_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
-    - imagenet_classes.txt: Image label file for post-processing.
 #>
 $io_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
 
