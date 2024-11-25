@@ -13,7 +13,7 @@
     They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
     It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
     The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
-    By default, $rootDirPath is set to C:\Qualcomm_AI, where all files will be downloaded and the Python environment will be created. 
+    By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created. 
 #>
 
 ############################ Define the URL for download ##################################
@@ -44,10 +44,10 @@ $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/m
 
 <#  Artifacts for tutorials, including:
     - kitten.jpg          : Test image for prediction.
-    - qc_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
+    - io_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
     - imagenet_classes.txt: Image label file for post-processing.
 #>
-$qc_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qc_utils.py"
+$io_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
 
 
 ############################ python installation path ##################################
@@ -88,7 +88,7 @@ $Mobilenet_Folder_path = "Models\Mobilenet_V2"
 
 Function Set_Variables {
     param (
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
     )
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $rootDirPath)) {
@@ -123,7 +123,7 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $mobilenetFolder
     }
     # Define the artifacts download path.
-    $global:qc_utilsPath       = "$mobilenetFolder\qc_utils.py"
+    $global:io_utilsPath       = "$mobilenetFolder\io_utils.py"
     # Define the mobilenet model download path.
     $global:modelFilePath      = "$mobilenetFolder\mobilenet_v2.onnx"
     
@@ -226,20 +226,20 @@ Function download_script_license{
 Function download_mobilenet_artifacts{
     param ()
     process{
-        # qc_utils for pre and post processing for the mobilenet 
-        # Checking if qc_utils.py already present
+        # io_utils for pre and post processing for the mobilenet 
+        # Checking if io_utils.py already present
         # If yes
-        if(Test-Path $qc_utilsPath){
-            Write-Output "qc_utils.py is already downloaded at : $qc_utilsPath"
+        if(Test-Path $io_utilsPath){
+            Write-Output "io_utils.py is already downloaded at : $io_utilsPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $qc_utilsUrl -downloadfile $qc_utilsPath
+            $result = download_file -url $io_utilsUrl -downloadfile $io_utilsPath
             if($result){
-                Write-Output "qc_utils.py is downloaded at : $qc_utilsPath"
+                Write-Output "io_utils.py is downloaded at : $io_utilsPath"
             }
             else{
-                Write-Output "qc_utils.py download failed. Download from $qc_utilsUrl"
+                Write-Output "io_utils.py download failed. Download from $io_utilsUrl"
             }
         }
     }
@@ -343,7 +343,7 @@ Function mobilenet_artifacts{
 
 Function ORT_CPU_Setup {
     param(
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -374,7 +374,7 @@ Function ORT_CPU_Setup {
 
 Function Activate_ORT_CPU_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Qualcomm_AI" 
+        [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
         $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
@@ -386,7 +386,7 @@ Function Activate_ORT_CPU_VENV {
 
 Function ORT_DML_Setup {
     param(
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -417,7 +417,7 @@ Function ORT_DML_Setup {
 
 Function Activate_ORT_DML_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Qualcomm_AI" 
+        [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
         $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
@@ -429,7 +429,7 @@ Function Activate_ORT_DML_VENV {
 
 Function ORT_HF_Setup {
     param(
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -460,7 +460,7 @@ Function ORT_HF_Setup {
 
 Function Activate_ORT_HF_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Qualcomm_AI" 
+        [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
         $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
@@ -472,7 +472,7 @@ Function Activate_ORT_HF_VENV {
 
 Function ORT_QNN_Setup {
     param(
-        [string]$rootDirPath = "C:\Qualcomm_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -503,7 +503,7 @@ Function ORT_QNN_Setup {
 
 Function Activate_ORT_QNN_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Qualcomm_AI" 
+        [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
         $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
