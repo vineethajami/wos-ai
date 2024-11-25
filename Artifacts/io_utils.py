@@ -15,17 +15,21 @@ def preprocess(img_path, nhwc = False):
     Preprocesses an image for a neural network model.
  
     Args:
-        img (str): Path to the input image or a PIL.Image object.
+        img_path (str): Path to the input image or image web link.
         nhwc (bool, optional): If True, reshapes the output in NHWC format (channels last).
             Otherwise, uses NCHW format (channels first). Default is False.
  
     Returns:
         np.ndarray: Preprocessed image as a NumPy array.
     """
-    response = requests.get(img_path, stream=True)
-    response.raw.decode_content = True
-    # reading the image
-    img = Image.open(response.raw)
+    if os.path.exists(img_path):
+        img = Image.open(img_path)
+    else:
+        response = requests.get(img_path, stream=True)
+        response.raw.decode_content = True
+        # reading the image
+        img = Image.open(response.raw)
+        
     # Resize the image to 224x224
     img = img.resize((224, 224))
     # Convert image to NumPy array and normalize
