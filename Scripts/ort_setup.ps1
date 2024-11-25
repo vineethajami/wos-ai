@@ -449,8 +449,8 @@ Function ORT_HF_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install optimum[onnxruntime]
-            pip install onnxruntime-directml
+            pip install optimum[onnxruntime]==1.23.3
+            pip install onnxruntime-directml==1.20.1
             pip install pillow
 	    pip install requests
         }
