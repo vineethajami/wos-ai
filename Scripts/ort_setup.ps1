@@ -194,7 +194,7 @@ Function download_script_license{
         }
         # Else dowloading
         else{
-            $result = download_file -url $onnxScriptUrl -downloadfile $ortSetupPath
+            $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
             if($result){
                 Write-Output "ort setup is downloaded at : $ortSetupPath"
             }
