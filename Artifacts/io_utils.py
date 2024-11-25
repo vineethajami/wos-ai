@@ -9,6 +9,7 @@
 import numpy as np
 from PIL import Image
 import requests
+import os
  
 def preprocess(img_path, nhwc = False):
     """
