@@ -1,6 +1,6 @@
 {
     "backend_extensions": {
-        "config_file_path": "C:\\WoS_AI\\Models\\Mobilenet_V2\\qnn_artifacts\\backendExtensionDetails.json",
+        "config_file_path": "C:\\WoS_AI\\Models\\Mobilenet_V2\\QNN_Artifacts\\backendExtensionDetails.json",
         "shared_library_path": "QnnHtpNetRunExtensions.dll"
     }
 }
