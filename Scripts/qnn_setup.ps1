@@ -10,7 +10,7 @@
     The qnn_setup.ps1 PowerShell script automatesthe setup process for Qualcomm's AI Engine Direct by downloading and installing necessary components, including Python, ONNX models, QNN SDK, and various dependencies.
     It creates and activates a virtual environment, upgrades pip, and installs required Python packages. 
     The function also runs scripts to check and ensure all dependencies are correctly set up, providing a complete and successful installation for AI Engine Direct QNN. 
-    By default, $rootDirPath is set to C:\Wos_AI, where all files will be downloaded and the Python environment will be created.
+    By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created.
 	
     Note: Users can modify values such as rootDirPath, QNN SDK version, etc, if desired
 #>
@@ -90,7 +90,7 @@ $global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\In
 
 Function Set_Variables {
     param (
-        [string]$rootDirPath = "C:\Wos_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
     )
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $rootDirPath)) {
@@ -630,7 +630,7 @@ Function mobilenet_artifacts{
 
 Function QNN_Setup{
     param(
-        [string]$rootDirPath = "C:\Wos_AI"
+        [string]$rootDirPath = "C:\WoS_AI"
     )
     process{
         # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
@@ -683,7 +683,7 @@ Function QNN_Setup{
 
 Function Activate_QNN_VENV {
     param ( 
-        [string]$rootDirPath = "C:\Wos_AI" 
+        [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
         $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
