@@ -80,7 +80,7 @@ Function download_and_extract {
 
          # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, "$rootDirPath\mlc_llm")
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, "$rootDirPath\Mlc_llm")
 	    return $true
     }  
 }
@@ -137,8 +137,8 @@ Function MLC_LLM_Setup {
         Set_Variables -rootDirPath $rootDirPath
         download_install_conda
 		Write-Output "Creating the conda env ... "
-        conda create -n mlc-venv -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
-        #conda activate mlc-venv
+        conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
+        #conda activate MLC_VENV
         download_and_extract -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
         cd $rootDirPath
 		if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
@@ -157,7 +157,7 @@ Function MLC_LLM_Setup {
 			Write-Output "TVM wheel downloaded at : $downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl"
 		}
       	
-		$mlcEnvPath = (conda info --base) + "\envs\mlc-venv"
+		$mlcEnvPath = (conda info --base) + "\envs\MLC_VENV"
 
 		# Install the package into the specified Conda environment
 		& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
