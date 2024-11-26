@@ -21,7 +21,14 @@
 
 $condaUrl       = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
 $mlcLlmUtilsUrl = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm-utils-win-x86.zip"
-$condaInstallPath= "C:\ProgramData\miniconda3"
+$mingwUrl       = "https://nuwen.net/files/mingw/mingw-19.0.exe"
+$gitUrl         = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
+
+$condaInstallPath = "C:\ProgramData\miniconda3"
+$mingwInstallPath = "C:\MinGW"
+$gitInstallPath   = "C:\Program Files\Git"
+
+
 
 
 ########################################      Function        ##########################################
@@ -44,7 +51,8 @@ Function Set_Variables {
     }
     # Define the path where the installer will be downloaded.
     $global:condaDownloaderPath       = "$downloadDirPath\miniconda.exe"
-	
+	$global:mingwDownloaderPath       = "$downloadDirPath\mingw-19.0.exe"
+    $global:gitDownloadPath           = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
 }
 
 Function download_file {
@@ -102,6 +110,64 @@ Function install_conda {
     }   
 }
 
+Function Install-Mingw {
+    param()
+    process {
+        # Install MinGW
+        Start-Process -FilePath $mingwDownloaderPath -ArgumentList "/SILENT /DIR=$mingwInstallPath" -Wait
+
+        # Check if MinGW was installed successfully
+        if (Test-Path "$mingwInstallPath\bin\gcc.exe") {
+            Write-Output "MinGW installed successfully."
+
+            # Get the current PATH environment variable
+            $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Add the new paths if they are not already in the PATH
+            if ($envPath -notlike "*$mingwInstallPath\bin*") {
+                $envPath = "$mingwInstallPath\bin;$envPath"
+                [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
+            }
+
+            # Refresh environment variables
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+            return $true
+        } 
+        else {
+            return $false
+        }
+    }
+}
+
+Function install_git {
+    param()
+    process {
+        # Install Git
+        Start-Process -FilePath $gitDownloadPath -ArgumentList "/VERYSILENT", "/NORESTART" -Wait
+        # Check if Git was installed successfully
+        if (Test-Path "$gitInstallPath\bin\git.exe") {
+            Write-Output "Git installed successfully."
+            # Get the current PATH environment variable
+            $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Add the new paths if they are not already in the PATH
+            if ($envPath -notlike "*$gitInstallPath\bin*") {
+                $envPath = "$gitInstallPath\bin;$envPath"
+                [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
+            }
+
+            # Refresh environment variables
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Verify Git installation
+            git --version
+        }
+        else {
+            Write-Output "Git installation failed."
+        }
+    }
+}
+
 Function download_install_conda {
     param()
     process {
@@ -126,8 +192,64 @@ Function download_install_conda {
     }
 }
 
+function download_install_mingw {
+    param(
+    )
+    process {
+        # Check if MinGW is already installed
+        if (Test-Path "$mingwInstallPath\bin\gcc.exe") {
+            Write-Output "MinGW already installed."
+        }
+        # Else downloading and installing MinGW
+        else {
+            Write-Output "Downloading the MinGW file ..."
+            $result = download_file -url $mingwUrl -downloadfile $mingwDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "MinGW file is downloaded at: $mingwDownloaderPath"
+                Write-Output "Installing MinGW..."
+                if (Install-Mingw) {
+                    Write-Output "MinGW installed successfully."
+                }
+                else {
+                    Write-Output "MinGW installation failed. Please install MinGW from: $mingwDownloaderPath"
+                }
+            }
+            else {
+                Write-Output "MinGW download failed. Download the MinGW file from: $mingwUrl and install."
+            }
+        }
+    }
+}
 
-
+Function download_install_git {
+    param()
+    process {
+        # Checking if Git is already installed
+        if (Test-Path "$gitInstallPath\bin\git.exe") {
+            Write-Output "Git already installed."
+        }
+        # Else downloading and installing Git
+        else {
+            Write-Output "Downloading the Git file ..."
+            $result = download_file -url $gitUrl -downloadfile $gitDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Git file is downloaded at : $gitDownloadPath"
+                Write-Output "Installing Git..."
+                if (install_git) {
+                    Write-Output "Git 2.47.0.2 installed successfully."
+                }
+                else {
+                    Write-Output "Git installation failed. Please install Git 2.47.0.2 from : $gitDownloadPath"
+                }
+            }
+            else {
+                Write-Output "Git download failed. Download the Git file from : $gitUrl and install."
+            }
+        }
+    }
+}
 
 Function MLC_LLM_Setup {
     param(
@@ -136,6 +258,8 @@ Function MLC_LLM_Setup {
     process {
         Set_Variables -rootDirPath $rootDirPath
         download_install_conda
+        download_install_mingw
+        download_install_git
 		Write-Output "Creating the conda env ... "
         conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
         #conda activate MLC_VENV
