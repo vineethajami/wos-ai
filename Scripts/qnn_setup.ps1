@@ -39,20 +39,13 @@ $qnnScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/ma
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
-    - kitten.jpg: Test image for prediction.
     - io_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
-    - imagenet_classes.txt: Image label file for post-processing.
-    - backendExtensionDetails.json:
-    - qnnConfigDetails.json: 
 #>
 # Define the URL of the file to download
 $io_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
-$backendExtensionDetailsUrl = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/backendExtensionDetails.json"
-$qnnConfigDetailsUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/qnnConfigDetails.json"
 
 # ONNX model file for image prediction used in tutorials
 $modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
-
 
 # Visual Studio dependency for compiling and converting ONNX model to C++ & binary, used for generating model.dll file
 $vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
@@ -139,8 +132,6 @@ Function Set_Variables {
     if (-Not (Test-Path $qnnartifactsPath )) {
         New-Item -ItemType Directory -Path $qnnartifactsPath
     }
-    $global:backendExtensionDetailsPath = "$qnnartifactsPath\backendExtensionDetails.json"
-    $global:qnnConfigDetailsPath        = "$qnnartifactsPath\qnnConfigDetails.json"
 
     $global:qnndependenciesPath         = "$rootDirPath\Models\QNN_Dependencies"
     # Create the Root folder if it doesn't exist
@@ -548,38 +539,6 @@ Function download_mobilenet_artifacts{
             }
             else{
                 Write-Output "io_utils.py download failed. Download from $io_utilsUrl"
-            }
-        }
-	# backendExtensionDetails.json
-        # Checking if backendExtensionDetails.json already present
-        # If yes
-        if(Test-Path $backendExtensionDetailsPath){
-            Write-Output "backendExtensionDetails.json is already downloaded at : $backendExtensionDetailsPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $backendExtensionDetailsUrl -downloadfile $backendExtensionDetailsPath
-            if($result){
-                Write-Output "backendExtensionDetails.json is downloaded at : $backendExtensionDetailsPath"
-            }
-            else{
-                Write-Output "backendExtensionDetails.json download failed. Download from $backendExtensionDetailsUrl"
-            }
-        }
-        # qnnConfigDetails.json
-        # Checking if qnnConfigDetails.json already present
-        # If yes
-        if(Test-Path $qnnConfigDetailsPath){
-            Write-Output "qnnConfigDetails.json is already downloaded at : $qnnConfigDetailsPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $qnnConfigDetailsUrl -downloadfile $qnnConfigDetailsPath
-            if($result){
-                Write-Output "qnnConfigDetails.json is downloaded at : $qnnConfigDetailsPath"
-            }
-            else{
-                Write-Output "qnnConfigDetails.json download failed. Download from $qnnConfigDetailsUrl"
             }
         }
     }
