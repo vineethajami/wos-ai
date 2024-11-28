@@ -29,7 +29,7 @@ Hugging Face Optimum + ONNX-RT EP Setup
 powershell -command "&{. .\ort_setup.ps1; ORT_HF_Setup -rootDirPath $DIR_PATH}"
 ```
 ## For DML NPU:
-Run the following command to download the qnn_setup script.
+Run the following command to download the dml_npu_setup script.
 ``` shell
 Invoke-WebRequest -O dml_npu_setup.ps1 https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/dml_npu_setup.ps1
 ```
