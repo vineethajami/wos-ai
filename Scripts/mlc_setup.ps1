@@ -21,12 +21,16 @@
 
 $condaUrl       = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
 $mlcLlmUtilsUrl = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm-utils-win-x86.zip"
-$mingwUrl       = "https://nuwen.net/files/mingw/mingw-19.0.exe"
+$mingwUrl       = "https://github.com/niXman/mingw-builds-binaries/releases/download/14.2.0-rt_v12-rev0/x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
 $gitUrl         = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
+$sevenZipUrl    = "https://7-zip.org/a/7z2408-arm64.exe"
 
 $condaInstallPath = "C:\ProgramData\miniconda3"
 $mingwInstallPath = "C:\MinGW"
 $gitInstallPath   = "C:\Program Files\Git"
+$sevenZipInstallPath = "C:\Program Files\7-Zip"
+
+$sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
 
 
 
@@ -51,7 +55,8 @@ Function Set_Variables {
     }
     # Define the path where the installer will be downloaded.
     $global:condaDownloaderPath       = "$downloadDirPath\miniconda.exe"
-	$global:mingwDownloaderPath       = "$downloadDirPath\mingw-19.0.exe"
+    $global:sevenZipDownloadPath       = "$downloadDirPath\7zInstaller.exe"
+	$global:mingwDownloaderPath       = "$downloadDirPath\x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
     $global:gitDownloadPath           = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
 }
 
@@ -72,7 +77,9 @@ Function download_file {
     }
 }
 
-Function download_and_extract {
+
+
+Function download_and_extract_conda {
     param (
         [string]$artifactsUrl,
         [string]$rootDirPath
@@ -94,12 +101,10 @@ Function download_and_extract {
 }
 
 
+
 Function install_conda {
     param()
     process {
-        # Install conda
-        #Start-Process -FilePath $condaDownloaderPath -ArgumentList "/S", "/D=$DIR_PATH\Miniconda3" -Wait
-		#$env:Path += ";$DIR_PATH\Miniconda3;$DIR_PATH\Miniconda3\Scripts;$DIR_PATH\Miniconda3\Library\bin"
 		Start-Process -FilePath $condaDownloaderPath -ArgumentList "/S" -Wait
         $env:Path += ";$condaInstallPath;$condaInstallPath\Scripts;$condaInstallPath\Library\bin"
         [System.Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
@@ -110,34 +115,46 @@ Function install_conda {
     }   
 }
 
+
 Function Install-Mingw {
     param()
     process {
-        # Install MinGW
-        Start-Process -FilePath $mingwDownloaderPath -ArgumentList "/SILENT /DIR=$mingwInstallPath" -Wait
-
+        
+        
+        # Create the Root folder if it doesn't exist
+        if (-Not (Test-Path $mingwInstallPath)) {
+            New-Item -ItemType Directory -Path $mingwInstallPath
+        }
+        
+        & $sevenZipPath x $mingwDownloaderPath "-o$mingwInstallPath"
+        
+        
         # Check if MinGW was installed successfully
-        if (Test-Path "$mingwInstallPath\bin\gcc.exe") {
+        if (Test-Path "$mingwInstallPath\mingw64\bin\gcc.exe") {
             Write-Output "MinGW installed successfully."
-
+            
             # Get the current PATH environment variable
             $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 
             # Add the new paths if they are not already in the PATH
-            if ($envPath -notlike "*$mingwInstallPath\bin*") {
-                $envPath = "$mingwInstallPath\bin;$envPath"
+            if ($envPath -notlike "*$mingwInstallPath\mingw64\bin*") {
+                $envPath = "$mingwInstallPath\mingw64\bin;$envPath"
                 [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
             }
 
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
             return $true
-        } 
-        else {
-            return $false
         }
+        
+        return $false
     }
 }
+
+
+
+
+
 
 Function install_git {
     param()
@@ -168,9 +185,50 @@ Function install_git {
     }
 }
 
-Function download_install_conda {
+Function install_7z {
     param()
     process {
+        # Install 7-Zip
+        Start-Process -FilePath $sevenZipDownloadPath -ArgumentList "/S" -Wait
+        # Check if 7-Zip was installed successfully
+        if (Test-Path "$sevenZipInstallPath\7z.exe") {
+            Write-Output "7-Zip installed successfully."
+            # Get the current PATH environment variable
+            $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Add the new paths if they are not already in the PATH
+            if ($envPath -notlike "*$sevenZipInstallPath*") {
+                $envPath = "$sevenZipInstallPath;$envPath"
+                [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
+            }
+
+            # Refresh environment variables
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Verify 7-Zip installation
+            & "$sevenZipInstallPath\7z.exe" --help
+        }
+        else {
+            Write-Output "7-Zip installation failed."
+        }
+    }
+}
+
+
+
+Function download_install_conda {
+    param()
+    
+    process {
+        # Define the path to check if Miniconda is installed
+        $minicondaPath = "C:\ProgramData\miniconda3\_conda.exe"
+        
+        # Check if Miniconda is already installed
+        if (Test-Path $minicondaPath) {
+            Write-Output "Miniconda is already installed at: $minicondaPath"
+            return
+        }
+        
         if (Test-Path $condaDownloaderPath) {
             Write-Output "conda File already exists at : $condaDownloaderPath"
         } else {
@@ -192,12 +250,13 @@ Function download_install_conda {
     }
 }
 
+
 function download_install_mingw {
     param(
     )
     process {
         # Check if MinGW is already installed
-        if (Test-Path "$mingwInstallPath\bin\gcc.exe") {
+        if (Test-Path "$mingwInstallPath\mingw64\bin\gcc.exe") {
             Write-Output "MinGW already installed."
         }
         # Else downloading and installing MinGW
@@ -221,6 +280,37 @@ function download_install_mingw {
         }
     }
 }
+
+
+Function download_install_7z {
+    param()
+    process {
+        # Checking if 7-Zip is already installed
+        if (Test-Path "$sevenZipInstallPath\7z.exe") {
+            Write-Output "7-Zip already installed."
+        }
+        # Else downloading and installing 7-Zip
+        else {
+            Write-Output "Downloading the 7-Zip file ..."
+            $result = download_file -url $sevenZipUrl -downloadfile $sevenZipDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "7-Zip file is downloaded at : $sevenZipDownloadPath"
+                Write-Output "Installing 7-Zip..."
+                if (install_7z) {
+                    Write-Output "7-Zip installed successfully."
+                }
+                else {
+                    Write-Output "7-Zip installation failed. Please install 7-Zip from : $sevenZipDownloadPath"
+                }
+            }
+            else {
+                Write-Output "7-Zip download failed. Download the 7-Zip file from : $sevenZipUrl and install."
+            }
+        }
+    }
+}
+
 
 Function download_install_git {
     param()
@@ -258,12 +348,13 @@ Function MLC_LLM_Setup {
     process {
         Set_Variables -rootDirPath $rootDirPath
         download_install_conda
+        download_install_7z
         download_install_mingw
         download_install_git
 		Write-Output "Creating the conda env ... "
         conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
         #conda activate MLC_VENV
-        download_and_extract -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
+        download_and_extract_conda -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
         cd $rootDirPath
 		if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
             Write-Output "MLC wheel already exists at : $condaDownloaderPath"
