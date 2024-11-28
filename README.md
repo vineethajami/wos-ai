@@ -16,7 +16,7 @@ ORT-CPU EP Setup
 ``` shell
 powershell -command "&{. .\ort_setup.ps1; ORT_CPU_Setup -rootDirPath $DIR_PATH}"
 ```
-ORT-DML EP  Setup
+ORT-DML EP (GPU)  Setup
 ``` shell
 powershell -command "&{. .\ort_setup.ps1; ORT_DML_Setup -rootDirPath $DIR_PATH}"
 ```
@@ -28,7 +28,15 @@ Hugging Face Optimum + ONNX-RT EP Setup
 ``` shell
 powershell -command "&{. .\ort_setup.ps1; ORT_HF_Setup -rootDirPath $DIR_PATH}"
 ```
-
+## For DML NPU:
+Run the following command to download the qnn_setup script.
+``` shell
+Invoke-WebRequest -O dml_npu_setup.ps1 https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/dml_npu_setup.ps1
+```
+DML NPU Setup:
+``` shell
+powershell -command "& {.\dml_npu_setup.ps1}"
+```
 ## For AI Engine Directsetup(QNN):
 Run the following command to download the qnn_setup script.
 ``` shell
