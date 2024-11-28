@@ -53,7 +53,7 @@ $io_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/m
 $username =  (Get-ChildItem Env:\Username).value
 
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312"
-$pythonScriptsPath = $pythonPath+"\Scripts"
+$pythonScriptsPath = $pythonInstallPath+"\Scripts"
 
 
 <#
@@ -114,6 +114,11 @@ Function Set_Variables {
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
 
+    $global:debugFolder    = "$rootDirPath\Debug_Logs"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $debugFolder)) {
+        New-Item -ItemType Directory -Path $debugFolder
+    }
     # Define download directory inside the working directory for downloading all dependency files and SDK.
     $global:mobilenetFolder = "$rootDirPath\$Mobilenet_Folder_path"
     # Create the Root folder if it doesn't exist
@@ -144,11 +149,34 @@ Function download_file {
     }
 }
 
+Function Show-Progress {
+    param (
+        [int]$percentComplete,
+        [int]$totalPercent
+    )
+    $progressBar = ""
+    $progressWidth = 100
+    $progress = [math]::Round((($percentComplete/$totalPercent)*100) / 100 * $progressWidth)
+    for ($i = 0; $i -lt $progressWidth; $i++) {
+        if ($i -lt $progress) {
+            $progressBar += "#"
+        } else {
+            $progressBar += "-"
+        }
+    }
+    # Write-Progress -Activity "Progress" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
+    Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
+}
+
 Function install_vsRedistributable
 {
     param()
     process{
         Start-Process -FilePath $vsRedistDownloadPath -ArgumentList "/install", "/quiet", "/norestart" -Wait 
+        if(Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64"){
+            return $true
+        }
+        return $false
     }
 }
 
@@ -173,7 +201,6 @@ Function install_python {
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 
             # Verify Python installation
-            python --version
             return $true
         } 
         else {
@@ -260,10 +287,10 @@ Function download_install_python {
                 Write-Output "Python File is downloaded at : $pythonDownloaderPath"
                 Write-Output "Installing python..."
                 if (install_python) {
-                    Write-Output "Python 3.10.4 installed successfully." 
+                    Write-Output "Python installed successfully." 
                 }
                 else {
-                    Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
+                    Write-Output "Python installation failed.. Please installed python from : $pythonDownloaderPath"  
                 }
             } 
             else{
@@ -338,6 +365,51 @@ Function mobilenet_artifacts{
 
 ############################## Main code ##################################]
 
+Function Check_Setup {
+    param(
+        [string]$logFilePath
+    )
+    process {
+        $results = @()
+
+        # Check if Python is installed
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Successful"
+                Comments  = "$(python --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Failed"
+                Comments  = "Download from $pythonUrl"
+            }
+        }
+
+        # Check if Visual Studio Redistributable is installed
+        if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
+            $results += [PSCustomObject]@{
+                Component = "VS-Redistributable"
+                Status    = "Successful"
+                Comments  = "Visual Studio C++ redistributable 14.42.3"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "VS-Redistributable"
+                Status    = "Failed"
+                Comments  = "Download from $vsRedistributableUrl"
+            }
+        }
+
+        # Output the results as a table
+        $results | Format-Table -AutoSize
+
+        # Store the results in a debug.log file
+        $results | Out-File -FilePath $logFilePath
+    }
+}
+
 
 Function ORT_CPU_Setup {
     param(
@@ -348,9 +420,12 @@ Function ORT_CPU_Setup {
 	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
+        Show-Progress -percentComplete 1 4
         download_install_redistributable
+        Show-Progress -percentComplete 2 4
         download_script_license
         mobilenet_artifacts
+        Show-Progress -percentComplete 3 4
         $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_CPU_ENV_Path))
@@ -366,7 +441,9 @@ Function ORT_CPU_Setup {
             pip install pillow
 	    pip install requests
         }
-        Write-Output "***** Installation successful for ORT-CPU *****"
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ORT-CPU *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_CPU_Setup_Debug.log"
     }
 }
 
@@ -382,18 +459,22 @@ Function Activate_ORT_CPU_VENV {
     }  
 }
 
+
 Function ORT_DML_Setup {
     param(
         [string]$rootDirPath = "C:\WoS_AI"
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-	Set-ExecutionPolicy RemoteSigned 
+     	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
+        Show-Progress -percentComplete 1 4
         download_install_redistributable
+        Show-Progress -percentComplete 2 4
         download_script_license
         mobilenet_artifacts
+        Show-Progress -percentComplete 3 4
         $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_DML_ENV_Path))
@@ -409,7 +490,9 @@ Function ORT_DML_Setup {
             pip install pillow
 	    pip install requests
         }
-        Write-Output "***** Installation successful for ORT-DML *****"
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ORT-DML *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_DML_Setup_Debug.log"
     }
 }
 
@@ -434,8 +517,11 @@ Function ORT_HF_Setup {
 	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
+        Show-Progress -percentComplete 1 4
         download_install_redistributable
+        Show-Progress -percentComplete 2 4
         download_script_license
+        Show-Progress -percentComplete 3 4
         $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_HF_ENV_Path))
@@ -452,7 +538,9 @@ Function ORT_HF_Setup {
             pip install pillow
 	    pip install requests
         }
-        Write-Output "***** Installation successful for Hugging Face Optimum + ONNX-RT *****"
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for Hugging Face Optimum + ONNX-RT *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_HF_Setup_Debug.log"
     }
 }
 
@@ -474,12 +562,15 @@ Function ORT_QNN_Setup {
         )
     process {
     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-	Set-ExecutionPolicy RemoteSigned 
+     	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
+        Show-Progress -percentComplete 1 4
         download_install_redistributable
+        Show-Progress -percentComplete 2 4
         download_script_license
         mobilenet_artifacts
+        Show-Progress -percentComplete 3 4
         $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path  $SDX_ORT_QNN_ENV_Path))
@@ -495,7 +586,9 @@ Function ORT_QNN_Setup {
             pip install pillow
 	    pip install requests
         }
-        Write-Output "***** Installation successful for ONNX-QNN *****"
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ONNX-QNN *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_QNN_Setup_Debug.log"
     }
 }
 
