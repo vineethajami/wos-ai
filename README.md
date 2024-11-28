@@ -1,8 +1,8 @@
-## WOS-AI
+### WOS-AI
 Welcome to our repository! Here, we provide setup scripts and artifacts for Windows on Snapdragon developer workflows(ONNX and QNN). 
 
 To run the scripts, follow the below commands:
-# For ONNX setup :
+## For ONNX setup :
 ``` shell
 . .\onnx_setup.ps1
 ```
