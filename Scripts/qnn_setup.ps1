@@ -22,7 +22,7 @@ $QNN_SDK_VERSION = "2.27.0.240926"
 
 # Define URLs for dependencies
 
-# Python 3.10.9 dependency for QNN SDK.
+# Python 3.10.4 dependency for QNN SDK.
 $pythonUrl = "https://www.python.org/ftp/python/3.10.4/python-3.10.4-amd64.exe"
 
 # Cmake 3.30.4 url
@@ -57,7 +57,7 @@ $aIEngineSdkInstallPath = "C:\Qualcomm\AIStack\QAIRT"
 # Retrieves the value of the Username
 $username = (Get-ChildItem Env:\Username).value
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python310"
-$pythonScriptsPath = $pythonPath+"\Scripts"
+$pythonScriptsPath = $pythonInstallPath+"\Scripts"
 
 # Define the cmake installation path.
 $cmakeInstallPath = "C:\Program Files\CMake"
@@ -69,7 +69,7 @@ $QAIRT_VENV_Path = "Python_Venv\QAIRT_VENV"
 $Mobilenet_Folder_path = "Models\Mobilenet_V2"
 
 
-$vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
+$vsInstallerPath = "C:\VS\Common7\Tools\Launch-VsDevShell.ps1"
 $SUGGESTED_VS_BUILDTOOLS_VERSION = "14.34"
 $SUGGESTED_WINSDK_VERSION = "10.0.22621"
 $SUGGESTED_VC_VERSION = "19.34"
@@ -115,6 +115,11 @@ Function Set_Variables {
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
 
+    $global:debugFolder    = "$rootDirPath\Debug_Logs"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $debugFolder)) {
+        New-Item -ItemType Directory -Path $debugFolder
+    }
     # Define download directory inside the working directory for downloading all dependency files and SDK.
     $global:mobilenetFolder = "$rootDirPath\$Mobilenet_Folder_path"
     # Create the Root folder if it doesn't exist
@@ -138,6 +143,25 @@ Function Set_Variables {
     if (-Not (Test-Path $qnndependenciesPath )) {
         New-Item -ItemType Directory -Path $qnndependenciesPath
     }
+}
+
+Function Show-Progress {
+    param (
+        [int]$percentComplete,
+        [int]$totalPercent
+    )
+    $progressBar = ""
+    $progressWidth = 100
+    $progress = [math]::Round((($percentComplete/$totalPercent)*100) / 100 * $progressWidth)
+    for ($i = 0; $i -lt $progressWidth; $i++) {
+        if ($i -lt $progress) {
+            $progressBar += "#"
+        } else {
+            $progressBar += "-"
+        }
+    }
+    # Write-Progress -Activity "Progress" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
+    Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
 }
 
 Function install_VS_Studio {
@@ -323,12 +347,9 @@ Function install_python {
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 
-            # Verify Python installation
-            python --version
+            return $true
         }
-        else {
-            Write-Output "Python installation failed."
-        }
+        return $false
     }
 }
 
@@ -351,13 +372,9 @@ Function install_cmake {
 
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
-            # Verify CMake installation
-            cmake --version
+            return $true
         }
-        else {
-            Write-Output "CMake installation failed."
-        }
+        return $false
     }
 }
 
@@ -617,9 +634,83 @@ Function mobilenet_artifacts{
     }
 }
 
+Function Check_Setup {
+    param(
+        [string]$logFilePath
+    )
+    process {
+        $results = @()
+
+        # Check if Python is installed
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Successful"
+                Comments  = "$(python --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Failed"
+                Comments  = "Download from $pythonUrl"
+            }
+        }
+
+        # Check if Visual Studio is installed
+        if (Test-Path $vsInstallerPath) {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Successful"
+                Comments  = "Microsoft Visual Studio version 17.10.4"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Failed"
+                Comments  = "Download from $vsStudioUrl"
+            }
+        }
+
+        # Check if AI Engine SDKs is installed
+        if (Test-Path "$aIEngineSdkInstallPath\$QNN_SDK_Version") {
+            $results += [PSCustomObject]@{
+                Component = "AI Engine SDK"
+                Status    = "Successful"
+                Comments  = "SDK version $QNN_SDK_Version"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "AI Engine SDK"
+                Status    = "Failed"
+                Comments  = "Download from $aIEngineSdkUrl"
+            }
+        }
+
+        # Check if CMake is installed
+        if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
+            $results += [PSCustomObject]@{
+                Component = "CMake"
+                Status    = "Successful"
+                Comments  = "$(cmake --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "CMake"
+                Status    = "Failed"
+                Comments  = "Download from $cmakeUrl"
+            }
+        }
+
+        # Output the results as a table
+        $results | Format-Table -AutoSize
+
+        # Store the results in a debug.log file
+        $results | Out-File -FilePath $logFilePath
+    }
+}
+
 
 ############################## main code ##################################
-
 
 Function QNN_Setup{
     param(
@@ -630,11 +721,16 @@ Function QNN_Setup{
         Set-ExecutionPolicy RemoteSigned
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
+        Show-Progress -percentComplete 1 6
         download_install_VS_Studio
+        Show-Progress -percentComplete 2 6
         download_install_AI_Engine_Direct_SDK
-	    download_install_cmake
+        Show-Progress -percentComplete 3 6
+	download_install_cmake
+        Show-Progress -percentComplete 4 6
         download_script_license
         mobilenet_artifacts
+        Show-Progress -percentComplete 5 6
         $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
         # Check if virtual environment was created
         if (-Not (Test-Path -Path $SDX_QAIRT_VENV_Path))
@@ -670,7 +766,9 @@ Function QNN_Setup{
             copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libQnnHtpV73Skel.so ${qnndependenciesPath}
             copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libqnnhtpv73.cat ${qnndependenciesPath}
         }
-        Write-Output "***** Installation successful for  AI Engine Direct QNN *****"
+        Show-Progress -percentComplete 6 6
+        Write-Output "***** Installation for AI Engine Direct(QNN)*****"
+        Check_Setup -logFilePath "$debugFolder\QNN_Setup_Debug.log"
     }
 }
 
