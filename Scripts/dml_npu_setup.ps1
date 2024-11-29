@@ -16,38 +16,34 @@
 Set-ExecutionPolicy RemoteSigned
 
 # Define URLs for dependencies
-
 # Cmake 3.30.4 url
-$cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
+$cmakeUrl             = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
 
 #git 2.47.0 url
-$gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
-
+$gitUrl               = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
 
 # Visual Studio dependency 
-$vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
-
+$vsStudioUrl          = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
 
 # Define download directory for downloading executable files of required dependencies
-$downloadDirPath = "$env:USERPROFILE\Downloads\dml_npu_downloads"
+$downloadDirPath      = "$env:USERPROFILE\Downloads\dml_npu_downloads"
 
 # Define paths for downloaded installers
 $cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
 $vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
-$gitDownloadPath = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
+$gitDownloadPath      = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
 
 # Define the cmake installation path.
-$cmakeInstallPath = "C:\Program Files\CMake"
+$cmakeInstallPath     = "C:\Program Files\CMake"
 
 # Define the Git installation path.
-$gitInstallPath = "C:\Program Files\Git"
+$gitInstallPath       = "C:\Program Files\Git"
 
-
-
-$vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
+# Checklist for VS Installation
+$vsInstalledPath                 = "C:\VS\Common7\Tools\Launch-VsDevShell.ps1"
 $SUGGESTED_VS_BUILDTOOLS_VERSION = "14.34"
-$SUGGESTED_WINSDK_VERSION = "10.0.22621"
-$SUGGESTED_VC_VERSION = "19.34"
+$SUGGESTED_WINSDK_VERSION        = "10.0.22621"
+$SUGGESTED_VC_VERSION            = "19.34"
 
 $global:CHECK_RESULT = 1
 $global:tools = @{}
@@ -225,8 +221,6 @@ Function check_MSVC_components_version {
     }
 }
 
-
-
 Function install_cmake {
     param()
     process {
@@ -301,13 +295,24 @@ Function download_file {
     }
 }
  
-
-############################## Main code ##################################
-
-
-
-
-
+Function Show-Progress {
+    param (
+        [int]$percentComplete,
+        [int]$totalPercent
+    )
+    $progressBar = ""
+    $progressWidth = 100
+    $progress = [math]::Round((($percentComplete/$totalPercent)*100) / 100 * $progressWidth)
+    for ($i = 0; $i -lt $progressWidth; $i++) {
+        if ($i -lt $progress) {
+            $progressBar += "#"
+        } else {
+            $progressBar += "-"
+        }
+    }
+    # Write-Progress -Activity "Progress" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
+    Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
+}
 
 Function download_install_cmake {
     param()
@@ -339,8 +344,6 @@ Function download_install_cmake {
     }
 }
 
-
-
 Function download_install_git {
     param()
     process {
@@ -370,14 +373,12 @@ Function download_install_git {
     }
 }
 
-
-
 Function download_install_VS_Studio {
     param()
     process {
         # Checking if VStudio already installed
         # If yes
-        if (Test-Path $vsInstallerPath) {
+        if (Test-Path $vsInstalledPath) {
             Write-Output "VS-Studio already installed."
         }
         # Else downloading and installing VStudio
@@ -402,21 +403,78 @@ Function download_install_VS_Studio {
     }
 }
 
+Function Check_Setup {
+    param(
+        [string]$logFilePath
+    )
+    process {
+        $results = @()
+        # Check if Visual Studio is installed
+        if (Test-Path $vsInstalledPath) {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Successful"
+                Comments  = "Microsoft Visual Studio version 17.10.4"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Failed"
+                Comments  = "Download from $vsStudioUrl"
+            }
+        }
 
+        # Check if CMake is installed
+        if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
+            $results += [PSCustomObject]@{
+                Component = "CMake"
+                Status    = "Successful"
+                Comments  = "$(cmake --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "CMake"
+                Status    = "Failed"
+                Comments  = "Download from $cmakeUrl"
+            }
+        }
 
+        # Check if Git is installed
+        if (Test-Path "$gitInstallPath") {
+            $results += [PSCustomObject]@{
+                Component = "Git"
+                Status    = "Successful"
+                Comments  = "$(git --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Git"
+                Status    = "Failed"
+                Comments  = "Download from $gitUrl"
+            }
+        }
 
+        # Output the results as a table
+        $results | Format-Table -AutoSize
 
+        # Store the results in a debug.log file
+        $results | Out-File -FilePath $logFilePath
+    }
+}
 
 ############################## main code ##################################
 
 Function DML_NPU_Setup{
     param()
     process{        
-        
         download_install_VS_Studio
-	download_install_cmake
-	download_install_git
-        Write-Output "***** Installation of required dependencies is sucessful *****"
+        Show-Progress -percentComplete 1 3
+        download_install_cmake
+        Show-Progress -percentComplete 2 3
+        download_install_git
+        Show-Progress -percentComplete 3 3
+        Write-Output "***** Installation of DML NPU *****"
+        Check_Setup -logFilePath "$downloadDirPath\DML_NPU_Setup_Debug.log"
     }
 }
 
