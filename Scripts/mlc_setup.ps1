@@ -16,26 +16,26 @@
 #>
 
 
-
 ############################ Define the URL for download ###############################################
 
-$condaUrl       = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-$mlcLlmUtilsUrl = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm-utils-win-x86.zip"
-$mingwUrl       = "https://github.com/niXman/mingw-builds-binaries/releases/download/14.2.0-rt_v12-rev0/x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
-$gitUrl         = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
-$sevenZipUrl    = "https://7-zip.org/a/7z2408-arm64.exe"
-
-$condaInstallPath = "C:\ProgramData\miniconda3"
-$mingwInstallPath = "C:\MinGW"
-$gitInstallPath   = "C:\Program Files\Git"
-$sevenZipInstallPath = "C:\Program Files\7-Zip"
-
-$sevenZipPath = "C:\Program Files\7-Zip\7z.exe"
+$condaUrl             = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+$mlcLlmUtilsUrl       = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm-utils-win-x86.zip"
+$mingwUrl             = "https://github.com/niXman/mingw-builds-binaries/releases/download/14.2.0-rt_v12-rev0/x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
+$gitUrl               = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
+$sevenZipUrl          = "https://7-zip.org/a/7z2408-arm64.exe"
 
 
+############################ Define the Installation paths ###############################################
+
+$condaInstallPath     = "C:\ProgramData\miniconda3"
+$mingwInstallPath     = "C:\MinGW"
+$gitInstallPath       = "C:\Program Files\Git"
+$sevenZipInstallPath  = "C:\Program Files\7-Zip"
+$sevenZipPath         = "C:\Program Files\7-Zip\7z.exe"
 
 
-########################################      Function        ##########################################
+
+########################################      Functions       ##########################################
 
 Function Set_Variables {
     param (
@@ -55,9 +55,34 @@ Function Set_Variables {
     }
     # Define the path where the installer will be downloaded.
     $global:condaDownloaderPath       = "$downloadDirPath\miniconda.exe"
-    $global:sevenZipDownloadPath       = "$downloadDirPath\7zInstaller.exe"
-	$global:mingwDownloaderPath       = "$downloadDirPath\x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
+    $global:sevenZipDownloadPath      = "$downloadDirPath\7zInstaller.exe"
+    $global:mingwDownloaderPath       = "$downloadDirPath\x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
     $global:gitDownloadPath           = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
+
+    $global:debugFolder               = "$rootDirPath\Debug_Logs"
+    # Create the Root folder if it doesn't exist
+    if (-Not (Test-Path $debugFolder)) {
+        New-Item -ItemType Directory -Path $debugFolder
+    }
+}
+
+Function Show-Progress {
+    param (
+        [int]$percentComplete,
+        [int]$totalPercent
+    )
+    $progressBar = ""
+    $progressWidth = 100
+    $progress = [math]::Round((($percentComplete/$totalPercent)*100) / 100 * $progressWidth)
+    for ($i = 0; $i -lt $progressWidth; $i++) {
+        if ($i -lt $progress) {
+            $progressBar += "#"
+        } else {
+            $progressBar += "-"
+        }
+    }
+    # Write-Progress -Activity "Progress" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
+    Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
 }
 
 Function download_file {
@@ -65,11 +90,11 @@ Function download_file {
         [string]$url,
         [string]$downloadfile
     )
-    # Download the file
     process {
         try {
-            Invoke-WebRequest -Uri $url -OutFile $downloadfile
-            return $true
+	    # Download the file
+	    Invoke-WebRequest -Uri $url -OutFile $downloadfile
+	    return $true
         }
         catch {
             return $false
@@ -86,26 +111,25 @@ Function download_and_extract_conda {
     )
     process {
         $zipFilePath = "$rootDirPath\Downloads\downloaded.zip"
-		if (Test-Path $zipFilePath) {
-            Write-Output "MLC already exists at : $condaDownloaderPath"
-        } else {
-			# Download the ZIP file
-			Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
-		}
+	if (Test-Path $zipFilePath) {
+            	Write-Output "MLC already exists at : $condaDownloaderPath"
+        } 
+	else {
+		# Download the ZIP file
+		Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
+	}
 
-         # Extract the ZIP file
+        # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, "$rootDirPath\Mlc_llm")
-	    return $true
+	return $true
     }  
 }
-
-
 
 Function install_conda {
     param()
     process {
-		Start-Process -FilePath $condaDownloaderPath -ArgumentList "/S" -Wait
+	Start-Process -FilePath $condaDownloaderPath -ArgumentList "/S" -Wait
         $env:Path += ";$condaInstallPath;$condaInstallPath\Scripts;$condaInstallPath\Library\bin"
         [System.Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
         # Refresh environment variables
@@ -115,46 +139,31 @@ Function install_conda {
     }   
 }
 
-
 Function Install-Mingw {
     param()
     process {
-        
-        
         # Create the Root folder if it doesn't exist
         if (-Not (Test-Path $mingwInstallPath)) {
             New-Item -ItemType Directory -Path $mingwInstallPath
         }
-        
         & $sevenZipPath x $mingwDownloaderPath "-o$mingwInstallPath"
-        
-        
         # Check if MinGW was installed successfully
         if (Test-Path "$mingwInstallPath\mingw64\bin\gcc.exe") {
             Write-Output "MinGW installed successfully."
-            
             # Get the current PATH environment variable
             $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
             # Add the new paths if they are not already in the PATH
             if ($envPath -notlike "*$mingwInstallPath\mingw64\bin*") {
                 $envPath = "$mingwInstallPath\mingw64\bin;$envPath"
                 [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
             }
-
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
             return $true
         }
-        
         return $false
     }
 }
-
-
-
-
-
 
 Function install_git {
     param()
@@ -166,22 +175,16 @@ Function install_git {
             Write-Output "Git installed successfully."
             # Get the current PATH environment variable
             $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
             # Add the new paths if they are not already in the PATH
             if ($envPath -notlike "*$gitInstallPath\bin*") {
                 $envPath = "$gitInstallPath\bin;$envPath"
                 [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
             }
-
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
-            # Verify Git installation
-            git --version
+            return $true
         }
-        else {
-            Write-Output "Git installation failed."
-        }
+        return $false
     }
 }
 
@@ -195,61 +198,50 @@ Function install_7z {
             Write-Output "7-Zip installed successfully."
             # Get the current PATH environment variable
             $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
             # Add the new paths if they are not already in the PATH
             if ($envPath -notlike "*$sevenZipInstallPath*") {
                 $envPath = "$sevenZipInstallPath;$envPath"
                 [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
             }
-
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
-            # Verify 7-Zip installation
-            & "$sevenZipInstallPath\7z.exe" --help
+            # # Verify 7-Zip installation
+            # & "$sevenZipInstallPath\7z.exe" --help
+            return $true
         }
-        else {
-            Write-Output "7-Zip installation failed."
-        }
+        return $false
     }
 }
 
-
-
 Function download_install_conda {
     param()
-    
     process {
         # Define the path to check if Miniconda is installed
-        $minicondaPath = "C:\ProgramData\miniconda3\_conda.exe"
-        
+        $minicondaPath = "$condaInstallPath\_conda.exe"
         # Check if Miniconda is already installed
         if (Test-Path $minicondaPath) {
             Write-Output "Miniconda is already installed at: $minicondaPath"
-            return
         }
-        
-        if (Test-Path $condaDownloaderPath) {
-            Write-Output "conda File already exists at : $condaDownloaderPath"
-        } else {
+        else {
             Write-Output "Downloading the conda file ..."
             $result = download_file -url $condaUrl -downloadfile $condaDownloaderPath
             # Checking for successful download
             if ($result) {
                 Write-Output "conda File is downloaded at : $condaDownloaderPath"
-            } else {
+                Write-Output "Installing conda..."
+                if (install_conda) {
+                    Write-Output "conda installed successfully."
+                }
+                else {
+                    Write-Output "conda installation failed..  from : $condaDownloaderPath"  
+                }
+            } 
+            else {
                 Write-Output "conda download failed. Download the conda file from : $condaUrl and install."
-                return
             }
-        }
-        
-        Write-Output "Installing conda..."
-        if (install_conda) {
-            Write-Output "conda installed successfully."
         }
     }
 }
-
 
 function download_install_mingw {
     param(
@@ -311,7 +303,6 @@ Function download_install_7z {
     }
 }
 
-
 Function download_install_git {
     param()
     process {
@@ -341,6 +332,67 @@ Function download_install_git {
     }
 }
 
+Function Check_Setup {
+    param(
+        [string]$logFilePath
+    )
+    process {
+        $results = @()
+        # Check if MiniCondao is installed
+        if (Test-Path "$condaInstallPath\_conda.exe") {
+            $results += [PSCustomObject]@{
+                Component = "MiniConda"
+                Status    = "Successful"
+                Comments  = "$(conda --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "MiniConda"
+                Status    = "Failed"
+                Comments  = "Download from $vsStudioUrl"
+            }
+        }
+
+        # Check if GCC is installed
+        if (Test-Path "$mingwInstallPath\mingw64\bin\gcc.exe") {
+            $results += [PSCustomObject]@{
+                Component = "Mingw64 GCC"
+                Status    = "Successful"
+                Comments  = "$(gcc --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Mingw64 GCC"
+                Status    = "Failed"
+                Comments  = "Download from $mingwUrl"
+            }
+        }
+
+        # Check if Git is installed
+        if (Test-Path "$gitInstallPath") {
+            $results += [PSCustomObject]@{
+                Component = "Git"
+                Status    = "Successful"
+                Comments  = "$(git --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Git"
+                Status    = "Failed"
+                Comments  = "Download from $gitUrl"
+            }
+        }
+
+        # Output the results as a table
+        $results | Format-Table -AutoSize
+
+        # Store the results in a debug.log file
+        $results | Out-File -FilePath $logFilePath
+    }
+}
+
+################################# Main Code #####################################
+
 Function MLC_LLM_Setup {
     param(
         [string]$rootDirPath = "C:\WoS_AI"
@@ -348,35 +400,39 @@ Function MLC_LLM_Setup {
     process {
         Set_Variables -rootDirPath $rootDirPath
         download_install_conda
+        Show-Progress -percentComplete 1 4
         download_install_7z
         download_install_mingw
+        Show-Progress -percentComplete 2 4
         download_install_git
-		Write-Output "Creating the conda env ... "
+        Show-Progress -percentComplete 3 4
+	Write-Output "Creating the conda env ... "
         conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
         #conda activate MLC_VENV
         download_and_extract_conda -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
         cd $rootDirPath
-		if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
-            Write-Output "MLC wheel already exists at : $condaDownloaderPath"
-        } else {
-			Write-Output "Downloading MLC wheel file..."
-			Invoke-WebRequest -o "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl
-			Write-Output "MLC wheel downloaded at : $downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl"
-		}
-		
-		if (Test-Path "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl") {
-            Write-Output "TVM wheel already exists at : $condaDownloaderPath"
-        } else {
-			Write-Output "Downloading TVM wheel file..."
-			Invoke-WebRequest -o "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl
-			Write-Output "TVM wheel downloaded at : $downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl"
-		}
-      	
-		$mlcEnvPath = (conda info --base) + "\envs\MLC_VENV"
-
-		# Install the package into the specified Conda environment
-		& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
-		& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
-		
+	if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
+ 		Write-Output "MLC wheel already exists at : $condaDownloaderPath"
+        } 
+	else {
+		Write-Output "Downloading MLC wheel file..."
+		Invoke-WebRequest -o "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl
+		Write-Output "MLC wheel downloaded at : $downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl"
+	}
+	if (Test-Path "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl") {
+            	Write-Output "TVM wheel already exists at : $condaDownloaderPath"
+        } 
+	else {
+		Write-Output "Downloading TVM wheel file..."
+		Invoke-WebRequest -o "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl
+		Write-Output "TVM wheel downloaded at : $downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl"
+	}
+	$mlcEnvPath = (conda info --base) + "\envs\MLC_VENV"
+	# Install the package into the specified Conda environment
+	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
+	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
+	Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation of MLC LLM *****"
+        Check_Setup -logFilePath "$debugFolder\MLC_LLM_Setup_Debug.log"
     }
 }
