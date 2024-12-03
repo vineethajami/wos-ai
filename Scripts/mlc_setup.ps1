@@ -104,13 +104,13 @@ Function download_file {
 
 
 
-Function download_and_extract_conda {
+Function download_and_extract_mlc_utils {
     param (
         [string]$artifactsUrl,
         [string]$rootDirPath
     )
     process {
-        $zipFilePath = "$rootDirPath\Downloads\downloaded.zip"
+        $zipFilePath = "$rootDirPath\Downloads\mlc_utils.zip"
 	if (Test-Path $zipFilePath) {
             	Write-Output "MLC already exists at : $condaDownloaderPath"
         } 
@@ -409,7 +409,7 @@ Function MLC_LLM_Setup {
 	Write-Output "Creating the conda env ... "
         conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
         #conda activate MLC_VENV
-        download_and_extract_conda -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
+        download_and_extract_mlc_utils -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
         cd $rootDirPath
 	if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
  		Write-Output "MLC wheel already exists at : $condaDownloaderPath"
