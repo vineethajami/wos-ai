@@ -331,27 +331,27 @@ Function download_install_redistributable {
         # Download redistributable file 
         # Checking if redistributable already present 
         # If yes
-        if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
-            Write-Output "VS-Redistributable is already installed."
-        }
+        # if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
+        #     Write-Output "VS-Redistributable is already installed."
+        # }
         # Else downloading and installing redistributable
-        else {
-            Write-Output "Downloading VS-Redistributable..." 
-            $result = download_file -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
-            if ($result) {
-                Write-Output "VS-Redistributable File is downloaded at : $vsRedistDownloadPath" 
-                Write-Output "installing VS-Redistributable..."
-                if (install_vsRedistributable) {
-                    Write-Output "VS-Redistributable is installed successfully." 
-                }
-                else {
-                    Write-Output "VS-Redistributable installation failed... from : $vsRedistDownloadPath" 
-                }
-            } 
-            else{
-                Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl and install" 
+        # else {
+        Write-Output "Downloading VS-Redistributable..." 
+        $result = download_file -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
+        if ($result) {
+            Write-Output "VS-Redistributable File is downloaded at : $vsRedistDownloadPath" 
+            Write-Output "installing VS-Redistributable..."
+            if (install_vsRedistributable) {
+                Write-Output "VS-Redistributable is installed successfully." 
             }
+            else {
+                Write-Output "VS-Redistributable installation failed... from : $vsRedistDownloadPath" 
+            }
+        } 
+        else{
+            Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl and install" 
         }
+        # }
     }
 }
 
@@ -437,7 +437,7 @@ Function ORT_CPU_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime==1.20.0
+            pip install onnxruntime==1.20.1
             pip install pillow
 	    pip install requests
         }
@@ -582,7 +582,7 @@ Function ORT_QNN_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime-qnn==1.20.0
+            pip install onnxruntime-qnn==1.20.1
             pip install pillow
 	    pip install requests
         }
