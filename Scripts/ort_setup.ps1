@@ -437,7 +437,7 @@ Function ORT_CPU_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime==1.20.1
+            pip install onnxruntime==1.20.0
             pip install pillow
 	    pip install requests
         }
