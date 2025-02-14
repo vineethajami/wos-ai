@@ -55,7 +55,7 @@ The goal is to Develop an AI application using the ORT Setup which we did in pre
 #### References
 - [AIHub Models](https://aihub.qualcomm.com/compute/models)
 - Please select Model Precision as Floating point.
-- ![image](https://github.qualcomm.com/mvijayak/Hyderabad-WoS-Events/assets/27610/61bc12b1-7fc1-4023-b5a8-f2eee35dc855)
+- ![image](https://github.com/user-attachments/assets/4f5e8dd5-293c-406e-a3ef-a07539cc071f)
 - Each Model Page will have the option to download the model. Please click Download Model -> ONNX Runtime (Choose runtime) -> Download Model.
 - For more details, Model Page will have Model Repository where we have Model details, Export scripts, Demo script for E2E model Execution with pytorch. [Example](https://github.com/quic/ai-hub-models/tree/main/qai_hub_models/models/deeplabv3_plus_mobilenet_quantized)
 #### Testing and Feedback 
