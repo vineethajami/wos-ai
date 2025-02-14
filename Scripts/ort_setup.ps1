@@ -7,82 +7,82 @@
 # =============================================================================
 
 <#  
-    The qnn_setup.ps1 PowerShell script automatesthe setup process for Qualcomm's AI Engine Direct by downloading and installing necessary components, including Python, ONNX models, QNN SDK, and various dependencies.
-    It creates and activates a virtual environment, upgrades pip, and installs required Python packages. 
-    The function also runs scripts to check and ensure all dependencies are correctly set up, providing a complete and successful installation for AI Engine Direct QNN. 
-    By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created.
-	
-    Note: Users can modify values such as rootDirPath, QNN SDK version, etc, if desired
+    The ort_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
+    Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
+    Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
+    They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
+    It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
+    The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
+    By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created. 
 #>
 
+############################ Define the URL for download ##################################
 
+# URL for downloading the python 3.12.6 
+<#  For Python 3.12.6 dependency:
+    - Any version of Python can be used for AMD architecture.
+    - For ARM architecture, install Python 3.11.x only. ORT QNN EP supports only Python ARM or AMD installations.
+    - Other ORT EPs require the AMD version of Python.
+    - To use ORT QNN EP on ARM, it is advised to create two Python environments: one for pre- and post-processing, and a second ARM environment for execution.
+    Note: Python ARM has limitations with other dependencies such as torch, onnx, etc.
+    Therefore, we recommend using the AMD version to avoid these issues.
+#>
+$pythonUrl = "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
 
-# Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
-$QNN_SDK_VERSION = "2.28.2.241116"
+# ONNX model file for image prediction used in tutorials.
+$modelUrl =  "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
 
-# Define URLs for dependencies
-
-# Python 3.10.4 dependency for QNN SDK.
-$pythonUrl = "https://www.python.org/ftp/python/3.10.4/python-3.10.4-amd64.exe"
-
-# Cmake 3.30.4 url
-$cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
-
-# QNN SDK download link for converting, generating, and executing the model on HTP (NPU) backend
-$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v$QNN_SDK_VERSION.zip"
+# URL for downloading the Visual Studio Redistributable for ARM64. Visual studio is used during model exection on HTP(NPU) backend.
+$vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
 
 <# Required files 
-    - qnn_setup.ps1      : qnn_setup script for environment activation
+    - ort_setup.ps1      : ort_setup script for environment activation
     - License             : License document
 #>
-$qnnScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
+$ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
-# gen_qnn_ctx_gen_ctx python script
-$genQnnCtxOnnxUrl    = "https://raw.githubusercontent.com/microsoft/onnxruntime/refs/heads/main/onnxruntime/python/tools/qnn/gen_qnn_ctx_onnx_model.py"
-
 <#  Artifacts for tutorials, including:
-    - io_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
+    - io_utils.py         : Utility file for preprocessing images and postprocessing to get top 5 predictions.
 #>
-# Define the URL of the file to download
-$io_utilsUrl                = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
+$io_utilsUrl       = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Artifacts/io_utils.py"
 
-# ONNX model file for image prediction used in tutorials
-$modelUrl = "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mobilenet_v2.onnx"
 
-# Visual Studio dependency for compiling and converting ONNX model to C++ & binary, used for generating model.dll file
-$vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
-
-# QNN SDK installation path
-$aIEngineSdkInstallPath = "C:\Qualcomm\AIStack\QAIRT"
-
-# Define the python installation path.
+############################ python installation path ##################################
 # Retrieves the value of the Username
-$username = (Get-ChildItem Env:\Username).value
-$pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python310"
+$username =  (Get-ChildItem Env:\Username).value
+
+$pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312"
 $pythonScriptsPath = $pythonInstallPath+"\Scripts"
 
-# Define the cmake installation path.
-$cmakeInstallPath = "C:\Program Files\CMake"
 
-# Define Python QAIRT_VENV environment path in the root directory. This environment will be used to install QNN SDK dependencies and tutorial-related dependencies.
-$QAIRT_VENV_Path = "Python_Venv\QAIRT_VENV"
+<#
+    Each tutorial section will have its own individual Python environment:
 
-# Define Mobilenet path in the root directory.
+    - ORT CPU EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT DML EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT QNN EP           : Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
+    - Hugging Face Optimum : Uses SDX_HF_ENV, which has specific Python package dependencies.
+
+    Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
+    For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
+    Users are advised to create separate Python environments for each case.
+
+    Define the paths for each environment to be created in the root directory 
+	
+    Note: Users can change this path to another location if desired.
+#>
+
+$ORT_CPU_ENV_Path = "Python_Venv\SDX_ORT_CPU_ENV"
+$ORT_DML_ENV_Path = "Python_Venv\SDX_ORT_DML_ENV"
+$ORT_QNN_ENV_Path = "Python_Venv\SDX_ORT_QNN_ENV"
+$ORT_HF_ENV_Path  = "Python_Venv\SDX_ORT_HF_ENV"
+
 $Mobilenet_Folder_path = "Models\Mobilenet_V2"
 
+####################################################################################
+############################      Function        ##################################
 
-$vsInstallerPath = "C:\VS\Common7\Tools\Launch-VsDevShell.ps1"
-$SUGGESTED_VS_BUILDTOOLS_VERSION = "14.34"
-$SUGGESTED_WINSDK_VERSION = "10.0.22621"
-$SUGGESTED_VC_VERSION = "19.34"
-
-$global:CHECK_RESULT = 1
-$global:tools = @{}
-$global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" )
-
-
-############################ Function ##################################
 
 Function Set_Variables {
     param (
@@ -100,12 +100,8 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $downloadDirPath
     }
     # Define the path where the installer will be downloaded.
-    $global:pythonDownloaderPath = "$downloadDirPath\python-3.10.4-amd64.exe"
-    $global:cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
-    $global:vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
-
-    # Define the SDK download path.
-    $global:aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
+    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
+    $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
     $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
@@ -113,7 +109,7 @@ Function Set_Variables {
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
     }
-    $global:qnnSetupPath      = "$scriptsDirPath\qnn_setup.ps1"
+    $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -130,26 +126,27 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $mobilenetFolder
     }
     # Define the artifacts download path.
-    $global:io_utilsPath                = "$mobilenetFolder\io_utils.py"
-
+    $global:io_utilsPath       = "$mobilenetFolder\io_utils.py"
     # Define the mobilenet model download path.
-    $global:modelFilePath               = "$mobilenetFolder\mobilenet_v2.onnx"
-
+    $global:modelFilePath      = "$mobilenetFolder\mobilenet_v2.onnx"
     
+}
 
-    $global:qnnartifactsPath            = "$mobilenetFolder\QNN_Artifacts"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $qnnartifactsPath )) {
-        New-Item -ItemType Directory -Path $qnnartifactsPath
+Function download_file {
+    param (
+        [string]$url,
+        [string]$downloadfile
+    )
+    # Download the file
+    process {
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $downloadfile
+            return $true
+        }
+        catch {
+            return $false
+        }
     }
-
-    $global:qnndependenciesPath         = "$rootDirPath\Models\QNN_Dependencies"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $qnndependenciesPath )) {
-        New-Item -ItemType Directory -Path $qnndependenciesPath
-    }
-    #Define the gen_qnn_ctx_onnx download path
-    $global:gen_qnn_ctx_onnx_FilePath           =  "$qnndependenciesPath\gen_qnn_ctx_onnx_model.py"
 }
 
 Function Show-Progress {
@@ -171,166 +168,15 @@ Function Show-Progress {
     Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
 }
 
-Function install_VS_Studio {
+Function install_vsRedistributable
+{
     param()
-    process {
-        # Install the VS Studio
-        Start-Process -FilePath $vsStudioDownloadPath -ArgumentList "--installPath C:\VS --passive --wait --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended --add Microsoft.VisualStudio.Component.VC.14.34.17.4.x86.x64 --add Microsoft.VisualStudio.Component.VC.14.34.17.4.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset" -Wait -PassThru
-        # Check if the VS Studio
-        check_MSVC_components_version
-    }
-}
-
-
-Function show_recommended_version_message {
-    param (
-        [String] $SuggestVersion,
-        [String] $FoundVersion,
-        [String] $SoftwareName
-    )
-    process {
-        Write-Warning "The version of $SoftwareName $FoundVersion found has not been validated. Recommended to use known stable $SoftwareName version $SuggestVersion"
-    }
-}
-
-Function show_required_version_message {
-    param (
-        [String] $RequiredVersion,
-        [String] $FoundVersion,
-        [String] $SoftwareName
-    )
-    process {
-        Write-Host "ERROR: Require $SoftwareName version $RequiredVersion. Found $SoftwareName version $FoundVersion" -ForegroundColor Red
-    }
-}
-
-
-Function compare_version {
-    param (
-        [String] $TargetVersion,
-        [String] $FoundVersion,
-        [String] $SoftwareName
-    )
-    process {
-        if ( (([version]$FoundVersion).Major -eq ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -eq ([version]$TargetVersion).Minor) ) { }
-        elseif ( (([version]$FoundVersion).Major -ge ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -ge ([version]$TargetVersion).Minor) ) {
-            show_recommended_version_message $TargetVersion $FoundVersion $SoftwareName
+    process{
+        Start-Process -FilePath $vsRedistDownloadPath -ArgumentList "/install", "/quiet", "/norestart" -Wait 
+        if(Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64"){
+            return $true
         }
-        else {
-            show_required_version_message $TargetVersion $FoundVersion $SoftwareName
-            $global:CHECK_RESULT = 0
-        }
-    }
-}
-
-Function locate_prerequisite_tools_path {
-    param ()
-    process {
-        # Get and Locate VSWhere
-        if (!(Test-Path $global:tools['vswhere'])) {
-            Write-Host "No Visual Studio Instance(s) Detected, Please Refer To The Product Documentation For Details" -ForegroundColor Red
-        }
-    }
-}
-
-Function detect_VS_instance {
-    param ()
-    process {
-        locate_prerequisite_tools_path
-
-        $INSTALLED_VS_VERSION = & $global:tools['vswhere'] -latest -property installationVersion
-        $INSTALLED_PATH = & $global:tools['vswhere'] -latest -property installationPath
-        $productId = & $global:tools['vswhere'] -latest -property productId
-
-        return $productId, $INSTALLED_PATH, $INSTALLED_VS_VERSION
-    }
-}
-
-Function check_VS_BuildTools_version {
-    param (
-        [String] $SuggestVersion = $SUGGESTED_VS_BUILDTOOLS_VERSION
-    )
-    process {
-        $INSTALLED_PATH = & $global:tools['vswhere'] -latest -property installationPath
-        $version_file_path = Join-Path $INSTALLED_PATH "VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
-        if (Test-Path $version_file_path) {
-            $INSTALLED_VS_BUILDTOOLS_VERSION = Get-Content $version_file_path
-            compare_version $SuggestVersion $INSTALLED_VS_BUILDTOOLS_VERSION "VS BuildTools"
-            return $INSTALLED_VS_BUILDTOOLS_VERSION
-        }
-        else {
-            Write-Error "VS BuildTools not installed"
-            $global:CHECK_RESULT = 0
-        }
-        return "Not Installed"
-    }
-}
-
-Function check_WinSDK_version {
-    param (
-        [String] $SuggestVersion = $SUGGESTED_WINSDK_VERSION
-    )
-    process {
-        $INSTALLED_WINSDK_VERSION = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0' -Name ProductVersion
-        if($?) {
-            compare_version $SuggestVersion $INSTALLED_WINSDK_VERSION "Windows SDK"
-            return $INSTALLED_WINSDK_VERSION
-        }
-        else {
-            Write-Error "Windows SDK not installed"
-            $global:CHECK_RESULT = 0
-        }
-        return "Not Installed"
-    }
-}
-
-Function check_VC_version {
-    param (
-        [String] $VsInstallLocation,
-        [String] $BuildToolVersion,
-        [String] $Arch,
-        [String] $SuggestVersion = $SUGGESTED_VC_VERSION
-    )
-    process {
-        $VcExecutable = Join-Path $VsInstallLocation "VC\Tools\MSVC\" | Join-Path -ChildPath $BuildToolVersion | Join-Path -ChildPath "bin\Hostx64" | Join-Path -ChildPath $Arch | Join-Path -ChildPath "cl.exe"
-
-        if(Test-Path $VcExecutable) {
-            #execute $VcExecutable and retrieve stderr since version is in it.
-            $process_alloutput = & "$VcExecutable" 2>&1
-            $process_stderror = $process_alloutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
-            $CMD = $process_stderror | Out-String | select-string "Version\s+(\d+\.\d+\.\d+)" # The software version is output in STDERR
-            $INSTALLED_VC_VERSION = $CMD.matches.groups[1].value
-            if($INSTALLED_VC_VERSION) {
-                compare_version $SuggestVersion $INSTALLED_VC_VERSION ("Visual C++(" + $Arch + ")")
-                return $INSTALLED_VC_VERSION
-            }
-            else {
-                Write-Error "Visual C++ not installed"
-                $global:CHECK_RESULT = 0
-            }
-        }
-        return "Not Installed"
-    }
-}
-
-Function check_MSVC_components_version {
-    param ()
-    process {
-        $check_result = @()
-        $productId, $vs_install_path, $vs_installed_version = detect_VS_instance
-        if ($productId) {
-            $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = $vs_installed_version}
-        }
-        else {
-            $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = "Not Installed"}
-            $global:CHECK_RESULT = 0
-        }
-        $buildtools_version = check_VS_BuildTools_version
-        $check_result += [pscustomobject]@{Name = "VS Build Tools"; Version = $buildtools_version}
-        $check_result += [pscustomobject]@{Name = "Visual C++(x86)"; Version = check_VC_version $vs_install_path $buildtools_version "x64"}
-        $check_result += [pscustomobject]@{Name = "Visual C++(arm64)"; Version = check_VC_version $vs_install_path $buildtools_version "arm64"}
-        $check_result += [pscustomobject]@{Name = "Windows SDK"; Version = check_WinSDK_version}
-        Write-Host ($check_result | Format-Table| Out-String).Trim()
+        return $false
     }
 }
 
@@ -354,202 +200,33 @@ Function install_python {
             # Refresh environment variables
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 
+            # Verify Python installation
             return $true
-        }
-        return $false
-    }
-}
-
-Function install_cmake {
-    param()
-    process {
-        # Install CMake
-        Start-Process msiexec.exe -ArgumentList "/i", $cmakeDownloaderPath, "/quiet", "/norestart" -Wait
-        # Check if CMake was installed successfully
-        if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
-            Write-Output "CMake installed successfully."
-            # Get the current PATH environment variable
-            $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-
-            # Add the new paths if they are not already in the PATH
-            if ($envPath -notlike "*$cmakeInstallPath\bin*") {
-                $envPath = "$cmakeInstallPath\bin;$envPath"
-                [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
-            }
-
-            # Refresh environment variables
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-            return $true
-        }
-        return $false
-    }
-}
-
-Function download_file {
-    param (
-        [string]$url,
-        [string]$downloadfile
-    )
-    process {
-        try {
-            Invoke-WebRequest -Uri $url -OutFile $downloadfile
-            return $true
-        }
-        catch {
+        } 
+        else {
             return $false
         }
-    }
-}
- 
-Function download_and_extract {
-    param (
-        [string]$artifactsUrl,
-        [string]$rootDirPath
-    )
-    process {
-        $zipFilePath = "$rootDirPath\downloaded.zip"
-        # Download the ZIP file
-        Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
-
-         # Extract the ZIP file
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
-	return $true
-    }  
-}
-############################## Main code ##################################
-
-
-Function download_install_python {
-    param()
-    process {
-        # Check if python already installed
-        # If Yes
-        if (Test-Path "$pythonInstallPath\python.exe") {
-            Write-Output "Python already installed."
-        }
-        # Else downloading and installing python
-        else{
-            Write-Output "Downloading the python file ..." 
-            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
-            # Checking for successful download
-            if ($result) {
-                Write-Output "Python File is downloaded at : $pythonDownloaderPath"
-                Write-Output "Installing python..."
-                if (install_python) {
-                    Write-Output "Python 3.10.4 installed successfully." 
-                }
-                else {
-                    Write-Output "Python installation failed.. Please installed python 3.10.4 from : $pythonDownloaderPath"  
-                }
-            } 
-            else{
-                Write-Output "Python download failed. Download the python file from : $pythonUrl and install." 
-            }
-        }
-    }
-}
-
-
-
-Function download_install_cmake {
-    param()
-    process {
-        # Checking if CMake already installed
-        # If yes
-        if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
-            Write-Output "CMake already installed."
-        }
-        # Else downloading and installing CMake
-        else {
-            Write-Output "Downloading the CMake file ..."
-            $result = download_file -url $cmakeUrl -downloadfile $cmakeDownloaderPath
-            # Checking for successful download
-            if ($result) {
-                Write-Output "CMake file is downloaded at : $cmakeDownloaderPath"
-                Write-Output "Installing CMake..."
-                if (install_cmake) {
-                    Write-Output "CMake 3.30.4 installed successfully."
-                }
-                else {
-                    Write-Output "CMake installation failed. Please install CMake 3.30.4 from : $cmakeDownloaderPath"
-                }
-            }
-            else {
-                Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl and install."
-            }
-        }
-    }
-}
-
-
-Function download_gen_qnn_ctx_onnx {
-    param()
-    process {
-        # Download generating qnn-ctx to onnx model python file 
-        # Checking if already present 
-        # If yes
-        if (Test-Path $gen_qnn_ctx_onnx_FilePath ) {
-            Write-Output "gen_qnn_ctx_onnx_model.py file already present at : $gen_qnn_ctx_onnx_FilePath " # -ForegroundColor Green
-        }
-        # Else downloading
-        else {
-            Write-Output "Downloading the gen_qnn_ctx_onnx_model.py ..." 
-            $result = download_file -url $genQnnCtxOnnxUrl -downloadfile $gen_qnn_ctx_onnx_FilePath  
-            # Checking for successful download
-            if ($result) {
-                Write-Output "File is downloaded at : $gen_qnn_ctx_onnx_FilePath" 
-
-            } 
-            else{
-                Write-Output "gen_qnn_ctx_onnx_model.py download failed. Download the gen_qnn_ctx_onnx_model.py file from :  $genQnnCtxOnnxUrl" 
-            }
-        }
-    }
-}
-
-Function download_onnxmodel {
-    param()
-    process {
-        # Download Model file 
-        # Checking if mobilenet.onnx already present 
-        # If yes
-        if (Test-Path $modelFilePath) {
-            Write-Output "ONNX File already present at : $modelFilePath" # -ForegroundColor Green
-        }
-        # Else downloading
-        else {
-            Write-Output "Downloading the onnx model ..." 
-            $result = download_file -url $modelUrl -downloadfile $modelFilePath
-            # Checking for successful download
-            if ($result) {
-                Write-Output "Onnx File is downloaded at : $modelFilePath" 
-
-            } 
-            else{
-                Write-Output "Onnx download failed. Download the onnx file from :  $modelUrl" 
-            }
-        }
+        
     }
 }
 
 Function download_script_license{
     param()
     process{
-        # qnn setup script
-        # Checking if qnn setup already present 
+        # ort setup script
+        # Checking if ort setup already present 
         # If yes
-        if(Test-Path $qnnSetupPath){
-            Write-Output "qnn setup is already downloaded at : $qnnSetupPath"
+        if(Test-Path $ortSetupPath){
+            Write-Output "ort setup is already downloaded at : $ortSetupPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $qnnScriptUrl -downloadfile $qnnSetupPath
+            $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
             if($result){
-                Write-Output "qnn setup is downloaded at : $qnnSetupPath"
+                Write-Output "ort setup is downloaded at : $ortSetupPath"
             }
             else{
-                Write-Output "qnn setup download failed. Download from $qnnScriptUrl"
+                Write-Output "ort setup download failed. Download from $ortScriptUrl"
             }
         }
         # License 
@@ -593,68 +270,88 @@ Function download_mobilenet_artifacts{
     }
 }
 
-Function download_install_VS_Studio {
+Function download_install_python {
     param()
     process {
-        # Checking if VStudio already installed
-        # If yes
-        if (Test-Path $vsInstallerPath) {
-            Write-Output "VS-Studio already installed."
+        # Check if python already installed
+        # If Yes
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            Write-Output "Python already installed."
         }
-        # Else downloading and installing VStudio
-        else {
-            Write-Output "Downloading the VS Studio..." 
-            $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
+        # Else downloading and installing python
+        else{
+            Write-Output "Downloading the python file ..." 
+            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
             # Checking for successful download
             if ($result) {
-                Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
-                Write-Output "installing VS-Studio..."
-                if (install_VS_Studio) {
-                    Write-Output "VS-Studio installed successfully." 
+                Write-Output "Python File is downloaded at : $pythonDownloaderPath"
+                Write-Output "Installing python..."
+                if (install_python) {
+                    Write-Output "Python installed successfully." 
                 }
-                else{
-                    Write-Output "VS-Studio installation failed..  from : $vsStudioDownloadPath"  
+                else {
+                    Write-Output "Python installation failed.. Please installed python from : $pythonDownloaderPath"  
                 }
             } 
             else{
-                Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl and install." 
+                Write-Output "Python download failed. Download the python file from : $pythonUrl and install." 
+            }
+        }
+    }
+}
+
+Function download_onnxmodel {
+    param()
+    process {
+        # Download Model file 
+        # Checking if mobilenet.onnx already present 
+        # If yes
+        if (Test-Path $modelFilePath) {
+            Write-Output "ONNX File already present at : $modelFilePath" # -ForegroundColor Green
+        }
+        # Else downloading
+        else {
+            Write-Output "Downloading the onnx model ..." 
+            $result = download_file -url $modelUrl -downloadfile $modelFilePath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Onnx File is downloaded at : $modelFilePath" 
+            } 
+            else{
+                Write-Output "Onnx download failed. Download the onnx file from :  $modelUrl" 
             }
         }
     }
 }
 
 
-Function download_install_AI_Engine_Direct_SDK {
+Function download_install_redistributable {
     param()
     process {
-        
-        # Checking if AI Engine Direct SDK already installed
+        # Download redistributable file 
+        # Checking if redistributable already present 
         # If yes
-	$SDK_Path = "$aIEngineSdkInstallPath\$QNN_SDK_Version"
-        if (Test-Path $SDK_Path) {
-            Write-Output "AI Engine Direct already present at :$SDK_Path" # -ForegroundColor Green
-        }
-        # Else downloading and installing AI Engine Direct SDK
-        else {
-            Write-Output "Downloading the AI Engine Direct..."
-            $result = download_and_extract -artifactsUrl $aIEngineSdkUrl -rootDirPath $downloadDirPath
-            # Checking for successful download
-            if ($result) {
-                Write-Output " AI Engine Direct Artifacts File is downloaded and extracted at : $downloadDirPath"
-		$folderName = [System.IO.Path]::GetFileName($aIEngineSdkDownloadPath)
-        	$destinationPath = Join-Path -Path $aIEngineSdkInstallPath -ChildPath $folderName
-                if (-Not (Test-Path -Path $aIEngineSdkInstallPath)) {
-                    New-Item -Path $aIEngineSdkInstallPath -ItemType Directory
-                }
-                if (-Not (Test-Path -Path $destinationPath)) {
-                    Move-Item -Path $aIEngineSdkDownloadPath -Destination $destinationPath
-                    Write-Output "AI Engine Direct installed successfully to $destinationPath"
-                }
+        # if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
+        #     Write-Output "VS-Redistributable is already installed."
+        # }
+        # # Else downloading and installing redistributable
+        # else {
+        Write-Output "Downloading VS-Redistributable..." 
+        $result = download_file -url $vsRedistributableUrl -downloadfile $vsRedistDownloadPath
+        if ($result) {
+            Write-Output "VS-Redistributable File is downloaded at : $vsRedistDownloadPath" 
+            Write-Output "installing VS-Redistributable..."
+            if (install_vsRedistributable) {
+                Write-Output "VS-Redistributable is installed successfully." 
             }
-            else{
-                Write-Output "AI Engine Direct download failed... Downloaded the AI Engine Direct SDK from : $aIEngineSdkUrl and extract to $destinationPath " 
+            else {
+                Write-Output "VS-Redistributable installation failed... from : $vsRedistDownloadPath" 
             }
+        } 
+        else{
+            Write-Output "VS-Redistributable download failed.... Download the VS-Redistributable file from :  $vsRedistributableUrl and install" 
         }
+        # }
     }
 }
 
@@ -666,13 +363,7 @@ Function mobilenet_artifacts{
     }
 }
 
-Function gen_qnn_ctx_onnx{
-    param()
-    process {
-        download_gen_qnn_ctx_onnx
-    }
-
-}
+############################## Main code ##################################]
 
 Function Check_Setup {
     param(
@@ -696,133 +387,235 @@ Function Check_Setup {
             }
         }
 
-        # Check if Visual Studio is installed
-        if (Test-Path $vsInstallerPath) {
+        # Check if Visual Studio Redistributable is installed
+        if (Test-Path "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\arm64") {
             $results += [PSCustomObject]@{
-                Component = "Microsoft Visual Studio"
+                Component = "VS-Redistributable"
                 Status    = "Successful"
-                Comments  = "Microsoft Visual Studio version 17.10.4"
+                Comments  = "Visual Studio C++ redistributable 14.42.3"
             }
         } else {
             $results += [PSCustomObject]@{
-                Component = "Microsoft Visual Studio"
+                Component = "VS-Redistributable"
                 Status    = "Failed"
-                Comments  = "Download from $vsStudioUrl"
-            }
-        }
-
-        # Check if AI Engine SDKs is installed
-        if (Test-Path "$aIEngineSdkInstallPath\$QNN_SDK_Version") {
-            $results += [PSCustomObject]@{
-                Component = "AI Engine SDK"
-                Status    = "Successful"
-                Comments  = "SDK version $QNN_SDK_Version"
-            }
-        } else {
-            $results += [PSCustomObject]@{
-                Component = "AI Engine SDK"
-                Status    = "Failed"
-                Comments  = "Download from $aIEngineSdkUrl"
-            }
-        }
-
-        # Check if CMake is installed
-        if (Test-Path "$cmakeInstallPath\bin\cmake.exe") {
-            $results += [PSCustomObject]@{
-                Component = "CMake"
-                Status    = "Successful"
-                Comments  = "$(cmake --version)"
-            }
-        } else {
-            $results += [PSCustomObject]@{
-                Component = "CMake"
-                Status    = "Failed"
-                Comments  = "Download from $cmakeUrl"
+                Comments  = "Download from $vsRedistributableUrl"
             }
         }
 
         # Output the results as a table
         $results | Format-Table -AutoSize
 
+        # Capture System Info 
+        $systemInfo = Get-ComputerInfo | Out-String
+
+        # Store the results in a debug.log file with additional lines
+        $logContent = @(
+            "Status of the installation:"
+            $results | Format-Table -AutoSize | Out-String
+            "------ System Info ------"
+            $systemInfo
+        )
         # Store the results in a debug.log file
-        $results | Out-File -FilePath $logFilePath
+        $logContent | Out-File -FilePath $logFilePath
     }
 }
 
 
-############################## main code ##################################
-
-Function QNN_Setup{
+Function ORT_CPU_Setup {
     param(
         [string]$rootDirPath = "C:\WoS_AI"
-    )
-    process{
-        # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-        Set-ExecutionPolicy RemoteSigned
+        )
+    process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
         Set_Variables -rootDirPath $rootDirPath
         download_install_python
-        Show-Progress -percentComplete 1 6
-        download_install_VS_Studio
-        Show-Progress -percentComplete 2 6
-        download_install_AI_Engine_Direct_SDK
-        Show-Progress -percentComplete 3 6
-	    download_install_cmake
-        Show-Progress -percentComplete 4 6
+        Show-Progress -percentComplete 1 4
+        download_install_redistributable
+        Show-Progress -percentComplete 2 4
         download_script_license
         mobilenet_artifacts
-        Show-Progress -percentComplete 5 6
-        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
+        Show-Progress -percentComplete 3 4
+        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
         # Check if virtual environment was created
-        if (-Not (Test-Path -Path $SDX_QAIRT_VENV_Path))
+        if (-Not (Test-Path -Path  $SDX_ORT_CPU_ENV_Path))
         {
-            py -3.10 -m venv $SDX_QAIRT_VENV_Path
+           py -3.12 -m venv $SDX_ORT_CPU_ENV_Path
         }
-        if (Test-Path "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1") {
-            & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1" 
-            # upgrade pip
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            #update the QNN version in the below command as needed. 
-            & C:\Qualcomm\AIStack\QAIRT\$QNN_SDK_VERSION\bin\envsetup.ps1
-            python "${QNN_SDK_ROOT}\bin\check-python-dependency"
-            pip install psutil==6.0.0 
-            pip install tensorflow==2.10.1 
-            pip install tflite==2.3.0
-            pip install torch==1.13.1
-            pip install torchvision==0.14.1 
-            pip install onnx==1.12.0
-            pip install onnxruntime==1.17.1
-            pip install onnxsim==0.4.36  
-            pip install fiftyone
-	        pip install requests
-            pip install --upgrade opencv-python
-            # checking all python dependency 
-            python "${QNN_SDK_ROOT}\bin\check-python-dependency"
-            # checking all winndow dependency
-            & "${QNN_SDK_ROOT}\bin\check-windows-dependency.ps1"
-            copy ${QNN_SDK_ROOT}\bin\aarch64-windows-msvc\qnn-net-run.exe ${qnndependenciesPath}
-            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtp.dll ${qnndependenciesPath}
-            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtpV73Stub.dll ${qnndependenciesPath}
-            copy ${QNN_SDK_ROOT}\lib\aarch64-windows-msvc\QnnHtpPrepare.dll ${qnndependenciesPath}
-            copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libQnnHtpV73Skel.so ${qnndependenciesPath}
-            copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libqnnhtpv73.cat ${qnndependenciesPath}
+            pip install onnxruntime==1.20.1
+            pip install pillow
+	    pip install requests
         }
-        gen_qnn_ctx_onnx
-        Show-Progress -percentComplete 6 6
-        Write-Output "***** Installation for AI Engine Direct(QNN)*****"
-        Check_Setup -logFilePath "$debugFolder\QNN_Setup_Debug.log"
-	Invoke-Command { & "powershell.exe" } -NoNewScope
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ORT-CPU *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_CPU_Setup_Debug.log"
+        Invoke-Command { & "powershell.exe" } -NoNewScope
     }
 }
 
-Function Activate_QNN_VENV {
+Function Activate_ORT_CPU_VENV {
     param ( 
         [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
-        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
+        $SDX_ORT_CPU_ENV_Path = "$rootDirPath\$ORT_CPU_ENV_Path"
         $global:DIR_PATH      = $rootDirPath
         cd "$DIR_PATH\$Mobilenet_Folder_path"
-        & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1"
-        & C:\Qualcomm\AIStack\QAIRT\$QNN_SDK_VERSION\bin\envsetup.ps1
+        & "$SDX_ORT_CPU_ENV_Path\Scripts\Activate.ps1"
     }  
 }
+
+
+Function ORT_DML_Setup {
+    param(
+        [string]$rootDirPath = "C:\WoS_AI"
+        )
+    process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+     	Set-ExecutionPolicy RemoteSigned 
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        Show-Progress -percentComplete 1 4
+        download_install_redistributable
+        Show-Progress -percentComplete 2 4
+        download_script_license
+        mobilenet_artifacts
+        Show-Progress -percentComplete 3 4
+        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_DML_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_DML_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install onnxruntime-directml==1.20.1
+            pip install pillow
+	    pip install requests
+        }
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ORT-DML *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_DML_Setup_Debug.log"
+        Invoke-Command { & "powershell.exe" } -NoNewScope
+    }
+}
+
+Function Activate_ORT_DML_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\WoS_AI" 
+    )
+    process {
+        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\$Mobilenet_Folder_path"
+        & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+    }  
+}
+
+Function ORT_HF_Setup {
+    param(
+        [string]$rootDirPath = "C:\WoS_AI"
+        )
+    process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+	Set-ExecutionPolicy RemoteSigned 
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        Show-Progress -percentComplete 1 4
+        download_install_redistributable
+        Show-Progress -percentComplete 2 4
+        download_script_license
+        Show-Progress -percentComplete 3 4
+        $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_HF_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_HF_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install optimum[onnxruntime]
+            pip install onnxruntime-directml
+            pip install pillow
+	    pip install requests
+        }
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for Hugging Face Optimum + ONNX-RT *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_HF_Setup_Debug.log"
+        Invoke-Command { & "powershell.exe" } -NoNewScope
+    }
+}
+
+Function Activate_ORT_HF_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\WoS_AI" 
+    )
+    process {
+        $SDX_ORT_HF_ENV_Path = "$rootDirPath\$ORT_HF_ENV_Path"
+        $global:DIR_PATH     = $rootDirPath
+        cd "$DIR_PATH\$Mobilenet_Folder_path"
+        & "$SDX_ORT_HF_ENV_Path\Scripts\Activate.ps1"
+    }  
+}
+
+Function ORT_QNN_Setup {
+    param(
+        [string]$rootDirPath = "C:\WoS_AI"
+        )
+    process {
+    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+     	Set-ExecutionPolicy RemoteSigned 
+        Set_Variables -rootDirPath $rootDirPath
+        download_install_python
+        Show-Progress -percentComplete 1 4
+        download_install_redistributable
+        Show-Progress -percentComplete 2 4
+        download_script_license
+        mobilenet_artifacts
+        Show-Progress -percentComplete 3 4
+        $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_ORT_QNN_ENV_Path))
+        {
+           py -3.12 -m venv $SDX_ORT_QNN_ENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install onnxruntime-qnn==1.20.1
+            pip install pillow
+	    pip install requests
+        }
+        Show-Progress -percentComplete 4 4
+        Write-Output "***** Installation for ONNX-QNN *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_QNN_Setup_Debug.log"
+        Invoke-Command { & "powershell.exe" } -NoNewScope
+    }
+}
+
+Function Activate_ORT_QNN_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\WoS_AI" 
+    )
+    process {
+        $SDX_ORT_QNN_ENV_Path = "$rootDirPath\$ORT_QNN_ENV_Path"
+        $global:DIR_PATH      = $rootDirPath
+        cd "$DIR_PATH\$Mobilenet_Folder_path"
+        & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
+    }  
+}
+
+

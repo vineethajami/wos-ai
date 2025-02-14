@@ -18,7 +18,7 @@
 
 
 # Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
-$QNN_SDK_VERSION = "2.27.0.240926"
+$QNN_SDK_VERSION = "2.28.2.241116"
 
 # Define URLs for dependencies
 
@@ -37,6 +37,9 @@ $aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qua
 #>
 $qnnScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
+
+# gen_qnn_ctx_gen_ctx python script
+$genQnnCtxOnnxUrl    = "https://raw.githubusercontent.com/microsoft/onnxruntime/refs/heads/main/onnxruntime/python/tools/qnn/gen_qnn_ctx_onnx_model.py"
 
 <#  Artifacts for tutorials, including:
     - io_utils.py: Utility file for preprocessing images and postprocessing to get top 5 predictions.
@@ -132,6 +135,8 @@ Function Set_Variables {
     # Define the mobilenet model download path.
     $global:modelFilePath               = "$mobilenetFolder\mobilenet_v2.onnx"
 
+    
+
     $global:qnnartifactsPath            = "$mobilenetFolder\QNN_Artifacts"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $qnnartifactsPath )) {
@@ -143,6 +148,8 @@ Function Set_Variables {
     if (-Not (Test-Path $qnndependenciesPath )) {
         New-Item -ItemType Directory -Path $qnndependenciesPath
     }
+    #Define the gen_qnn_ctx_onnx download path
+    $global:gen_qnn_ctx_onnx_FilePath           =  "$qnndependenciesPath\gen_qnn_ctx_onnx_model.py"
 }
 
 Function Show-Progress {
@@ -476,6 +483,31 @@ Function download_install_cmake {
 }
 
 
+Function download_gen_qnn_ctx_onnx {
+    param()
+    process {
+        # Download generating qnn-ctx to onnx model python file 
+        # Checking if already present 
+        # If yes
+        if (Test-Path $gen_qnn_ctx_onnx_FilePath ) {
+            Write-Output "gen_qnn_ctx_onnx_model.py file already present at : $gen_qnn_ctx_onnx_FilePath " # -ForegroundColor Green
+        }
+        # Else downloading
+        else {
+            Write-Output "Downloading the gen_qnn_ctx_onnx_model.py ..." 
+            $result = download_file -url $genQnnCtxOnnxUrl -downloadfile $gen_qnn_ctx_onnx_FilePath  
+            # Checking for successful download
+            if ($result) {
+                Write-Output "File is downloaded at : $gen_qnn_ctx_onnx_FilePath" 
+
+            } 
+            else{
+                Write-Output "gen_qnn_ctx_onnx_model.py download failed. Download the gen_qnn_ctx_onnx_model.py file from :  $genQnnCtxOnnxUrl" 
+            }
+        }
+    }
+}
+
 Function download_onnxmodel {
     param()
     process {
@@ -634,6 +666,14 @@ Function mobilenet_artifacts{
     }
 }
 
+Function gen_qnn_ctx_onnx{
+    param()
+    process {
+        download_gen_qnn_ctx_onnx
+    }
+
+}
+
 Function Check_Setup {
     param(
         [string]$logFilePath
@@ -726,7 +766,7 @@ Function QNN_Setup{
         Show-Progress -percentComplete 2 6
         download_install_AI_Engine_Direct_SDK
         Show-Progress -percentComplete 3 6
-	download_install_cmake
+	    download_install_cmake
         Show-Progress -percentComplete 4 6
         download_script_license
         mobilenet_artifacts
@@ -753,7 +793,7 @@ Function QNN_Setup{
             pip install onnxruntime==1.17.1
             pip install onnxsim==0.4.36  
             pip install fiftyone
-	    pip install requests
+	        pip install requests
             pip install --upgrade opencv-python
             # checking all python dependency 
             python "${QNN_SDK_ROOT}\bin\check-python-dependency"
@@ -766,9 +806,11 @@ Function QNN_Setup{
             copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libQnnHtpV73Skel.so ${qnndependenciesPath}
             copy ${QNN_SDK_ROOT}\lib\hexagon-v73\unsigned\libqnnhtpv73.cat ${qnndependenciesPath}
         }
+        gen_qnn_ctx_onnx
         Show-Progress -percentComplete 6 6
         Write-Output "***** Installation for AI Engine Direct(QNN)*****"
         Check_Setup -logFilePath "$debugFolder\QNN_Setup_Debug.log"
+	    Invoke-Command { & "powershell.exe" } -NoNewScope
     }
 }
 
