@@ -326,13 +326,28 @@ Function download_file {
         [string]$downloadfile
     )
     process {
-        try {
-            Invoke-WebRequest -Uri $url -OutFile $downloadfile
-            return $true
+        $attempt = 0
+        $maxAttempts = 3  # Maximum number of retry attempts
+        $success = $false
+
+        while (-not $success -and $attempt -lt $maxAttempts) {
+            try {
+                Write-Output "Attempting to download from: $url (Attempt $($attempt + 1) of $maxAttempts)"
+                Invoke-WebRequest -Uri $url -OutFile $downloadfile
+                $success = $true
+            }
+            catch {
+                Write-Warning "Download failed on attempt $($attempt + 1). Retrying..."
+                $attempt++
+                Start-Sleep -Seconds 5  # Optional: Pause before retrying
+            }
         }
-        catch {
-            return $false
+
+        if (-not $success) {
+            Write-Error "Download failed after $maxAttempts attempts. Please check the URL and network connection."
         }
+
+        return $success
     }
 }
  
@@ -465,7 +480,8 @@ Function download_source_model {
                 Write-Output "source model is downloaded at : $sourceModelDownlaodPath" 
             } 
             else{
-                Write-Output "source model download failed... Downloaded the sourc model from :  $sourceModelUrl and move to $rootDirPath." 
+                Write-Output "source model download failed... Re-run the setup script or downloaded the sourc model from :  $sourceModelUrl and move to $rootDirPath." 
+				exit
             }
         }
     }
@@ -614,9 +630,9 @@ Function LLaMA_cpp_Setup{
         Show-Progress -percentComplete 2 5
         download_install_git
         Show-Progress -percentComplete 3 5
-        download_source_model
+		download_prebuilt_binary
         Show-Progress -percentComplete 4 5
-        download_prebuilt_binary
+        download_source_model
         Show-Progress -percentComplete 5 5
         Write-Output "***** Installation setup for LlaMA CPP *****"
         Check_Setup -logFilePath "$downloadDirPath\LLaMA_cpp_Debug.log"
