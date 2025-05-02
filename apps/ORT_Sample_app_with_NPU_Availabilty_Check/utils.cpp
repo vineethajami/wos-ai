@@ -1,10 +1,10 @@
-
+#include <sstream> // For std::ostringstream
+#include <iostream>
+#include <string>
+#include <stdint.h>
 #include "utils.h"
 
-#define DX_C_ASSERT(cond)      typedef CHAR __C_ASSERT__[(cond)?1:-1]
-
-DEFINE_GUID(DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_ML, 0xb71b0d41, 0x1088, 0x422f, 0xa2, 0x7c, 0x2, 0x50, 0xb7, 0xd3, 0xa9, 0x88);
-DEFINE_GUID(GUID_NORMALIZATION, 0xe7ab4322, 0xd08d, 0x4683, 0xb6, 0x9a, 0xc6, 0xa4, 0xfb, 0x41, 0x0f, 0x6d);
+DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU, 0xd46140c4, 0xadd7, 0x451b, 0x9e, 0x56, 0x6, 0xfe, 0x8c, 0x3b, 0x58, 0xed);
 
 struct DriverVersion
 {
@@ -36,80 +36,90 @@ struct DriverVersion
     }
 };
 
-enum D3D_FEATURE_LEVEL_INTERNAL
+std::string bpFunc()
 {
-    D3D_FEATURE_LEVEL_INTERNAL_1_0_GENERIC = 0x100,
-    D3D_FEATURE_LEVEL_INTERNAL_1_0_CORE = 0x1000,
-};
+    std::ostringstream output; // For consolidating all information
+    HRESULT hr;
+    IDXCoreAdapterFactory* pAdapterFactory = NULL;
+    IDXCoreAdapterList* pAdapterList = NULL;
+    unsigned int NumAdapters = 0;
+    IDXCoreAdapter* pAdapter = NULL;
+    char NpuDescription[MAX_PATH];
+    LARGE_INTEGER driverVersion;
 
-int bpFunc()
-{
-    HRESULT hr = S_OK;
-    IDXCoreAdapterFactory* pFactory = nullptr;
-    IDXCoreAdapterList* pAdapterList = nullptr;
-    IDXCoreAdapter* pAdapter = nullptr;
-    int32_t dmlAdapter = -1;
-    int32_t npuAvailable = -1;
-
-    // Create a DXCore Factory instance
-    hr = DXCoreCreateAdapterFactory(&pFactory);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to create DXCore Factory." << std::endl;
-        return 1;
+    // Create the adapter factory
+    hr = DXCoreCreateAdapterFactory(__uuidof(IDXCoreAdapterFactory), (void**)&pAdapterFactory);
+    if (FAILED(hr))
+    {
+        return "Failed to create Adapter Factory.\n";
     }
 
-    // Enumerate adapters
-    const GUID filter[] = { DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_ML };
-    hr = pFactory->CreateAdapterList(1, filter, IID_PPV_ARGS(&pAdapterList));
-    if (FAILED(hr)) {
-        std::cerr << "Failed to create adapter list." << std::endl;
-        pFactory->Release();
-        return 1;
+    // Create the adapter list for NPUs
+    hr = pAdapterFactory->CreateAdapterList(1, &DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU, __uuidof(IDXCoreAdapterList), (void**)&pAdapterList);
+    if (FAILED(hr))
+    {
+        return "Failed to create Adapter List.\n";
     }
 
     // Get the number of adapters
-    size_t adapterCount = pAdapterList->GetAdapterCount();
+    NumAdapters = pAdapterList->GetAdapterCount();
+    output << "Number of Adapters: " << NumAdapters << "\n";
 
-    std::cout << "Number of Adapters: " << adapterCount << std::endl;
-    //numAdaptors = adapterCount;
-    // Loop through all adapters
-    for (size_t i = 0; i < adapterCount; ++i) {
-        pAdapterList->GetAdapter((uint32_t)i, IID_PPV_ARGS(&pAdapter));
+    if (NumAdapters == 0)
+    {
+        output << "Snapdragon NPU not present.\n";
+    }
+    else
+    {
+        // Get the first adapter
+        hr = pAdapterList->GetAdapter(0, &pAdapter);
 
-        // Get adapter properties
-        DXCoreHardwareIDParts hardwareId;
-        pAdapter->GetProperty(DXCoreAdapterProperty::HardwareID, &hardwareId);
-        std::cout << "\nAdapter " << i << ": Vendor ID = " << hardwareId.vendorID
-            << ", Device ID = " << hardwareId.deviceID << std::endl;
+        // Get the NPU description
+        hr = pAdapter->GetProperty(DXCoreAdapterProperty::DriverDescription, MAX_PATH, NpuDescription);
+        if (SUCCEEDED(hr))
+        {
+            output << "NPU Found: " << NpuDescription << "\n";
+        }
+        else
+        {
+            output << "Failed to retrieve NPU description.\n";
+        }
 
-        if (hardwareId.deviceID == 1093682224)
-            npuAvailable = 1;
+        // Get the driver version
+        hr = pAdapter->GetProperty(DXCoreAdapterProperty::DriverVersion, sizeof(driverVersion), &driverVersion);
+        if (SUCCEEDED(hr))
+        {
+            DriverVersion ver(driverVersion.QuadPart);
+            output << "Driver Version: " << ver.parts.a << "." << ver.parts.b << "." << ver.parts.c << "." << ver.parts.d << "\n";
+        }
+        else
+        {
+            output << "Failed to retrieve Driver Version.\n";
+        }
 
+        // Query HardwareID
+        DXCoreHardwareID hardwareID;
+        hr = pAdapter->GetProperty(DXCoreAdapterProperty::HardwareID, sizeof(hardwareID), &hardwareID);
+        if (SUCCEEDED(hr))
+        {
+            output << "Hardware Details:\n";
+            output << "  Vendor ID: " << hardwareID.vendorID << "\n";
+            output << "  Device ID: " << hardwareID.deviceID << "\n";
+            output << "  Subsystem ID: " << hardwareID.subSysID << "\n";
+            output << "  Revision: " << hardwareID.revision << "\n";
+        }
+        else
+        {
+            output << "Failed to retrieve Hardware Details.\n";
+        }
 
-        size_t propSize = 0;
-        pAdapter->GetPropertySize(DXCoreAdapterProperty::DriverDescription, &propSize);
-        std::vector<char> driver_description(propSize);
-        std::cout << "prop size: " << propSize << std::endl;
-        pAdapter->GetProperty(DXCoreAdapterProperty::DriverDescription, propSize, driver_description.data());
-        std::string name;
-        name.assign(driver_description.begin(), driver_description.end());
-        std::cout << "Desc: " << name << std::endl;
-
-        LARGE_INTEGER driverVersion;
-        pAdapter->GetProperty(DXCoreAdapterProperty::DriverVersion, sizeof(driverVersion), &driverVersion);
-        DriverVersion ver(driverVersion.QuadPart);
-
-        std::cout << "Version:" << ver.parts.a << "." << ver.parts.b << "." << ver.parts.c << "." << ver.parts.d << std::endl;
-
-        if (ver.parts.a == 4000)
-            dmlAdapter = (uint32_t)i;
-
+        // Release the adapter
         pAdapter->Release();
     }
+
+    // Release the adapter list and factory
     pAdapterList->Release();
-    pFactory->Release();
+    pAdapterFactory->Release();
 
-    //system("pause");
-
-    return npuAvailable;
+    return output.str(); // Return consolidated information as a string
 }

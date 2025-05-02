@@ -216,14 +216,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  int npuAvailabilty = bpFunc();
-
-  if (npuAvailabilty == 1) {
+  string npuDetails = bpFunc();
+  if (npuDetails.find("Snapdragon NPU not present") != std::string::npos) {
+    cout << ".....................Snapdragon NPU absent.................." << endl;
+    return 1;
+  } else {
       cout << ".....................Snapdragon NPU present.................." << endl;
-  }
-  else {
-      cout << ".....................Snapdragon NPU absent.................." << endl;
-      return 1;
+      // Print consolidated NPU details
+      cout << npuDetails << endl;
   }
   bool generate_ctx = false;
   ifstream file;

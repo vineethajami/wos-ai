@@ -8,4 +8,4 @@
 
 using namespace std;
 
-int bpFunc();
+string bpFunc();
