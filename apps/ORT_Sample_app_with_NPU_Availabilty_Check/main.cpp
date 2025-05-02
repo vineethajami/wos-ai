@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  string npuDetails = bpFunc();
+  string npuDetails = npuAvailabilityCheck();
   if (npuDetails.find("Snapdragon NPU not present") != std::string::npos) {
     cout << ".....................Snapdragon NPU absent.................." << endl;
     return 1;

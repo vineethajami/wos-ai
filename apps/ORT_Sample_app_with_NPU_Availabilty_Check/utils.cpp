@@ -36,7 +36,7 @@ struct DriverVersion
     }
 };
 
-std::string bpFunc()
+std::string npuAvailabilityCheck()
 {
     std::ostringstream output; // For consolidating all information
     HRESULT hr;

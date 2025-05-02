@@ -8,4 +8,4 @@
 
 using namespace std;
 
-string bpFunc();
+string npuAvailabilityCheck();
