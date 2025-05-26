@@ -1,0 +1,11 @@
+# Use a pipeline as a high-level helper
+from transformers import pipeline
+pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct")
+# Load model directly
+from transformers import AutoTokenizer, AutoModelForCausalLM
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-3B-Instruct")
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-3B-Instruct")
+import os
+os.makedirs("llama3p2_3b_instruct")
+tokenizer.save_pretrained("llama3p2_3b_instruct/")
+model.save_pretrained("llama3p2_3b_instruct/")
