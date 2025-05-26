@@ -1,3 +1,12 @@
+# =============================================================================
+#
+# Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# =============================================================================
+
+
 # Use a pipeline as a high-level helper
 from transformers import pipeline
 pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct")
