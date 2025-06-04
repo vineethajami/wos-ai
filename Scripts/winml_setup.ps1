@@ -19,9 +19,9 @@
 # URL for downloading the python 3.12.6 
 <#  For Python 3.12.6 dependency:
     - Any version of Python can be used for AMD architecture.
-    - For ARM architecture, install Python 3.11.x only. ORT QNN EP supports only Python ARM or AMD installations.
-    - Other ORT EPs require the AMD version of Python.
-    - To use ORT QNN EP on ARM, it is advised to create two Python environments: one for pre- and post-processing, and a second ARM environment for execution.
+    - For ARM architecture, install Python 3.11.x only. winml QNN EP suppwinmls only Python ARM or AMD installations.
+    - Other winml EPs require the AMD version of Python.
+    - To use winml QNN EP on ARM, it is advised to create two Python environments: one for pre- and post-processing, and a second ARM environment for execution.
     Note: Python ARM has limitations with other dependencies such as torch, onnx, etc.
     Therefore, we recommend using the AMD version to avoid these issues.
 #>
@@ -86,7 +86,7 @@ Function Set_Variables {
     if (-Not (Test-Path $scriptsDirPath)) {
         New-Item -ItemType Directory -Path $scriptsDirPath
     }
-    $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
+    $global:winmlSetupPath      = "$scriptsDirPath\winml_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -190,20 +190,20 @@ Function install_python {
 Function download_script_license{
     param()
     process{
-        # ort setup script
-        # Checking if ort setup already present 
+        # winml setup script
+        # Checking if winml setup already present 
         # If yes
-        if(Test-Path $ortSetupPath){
-            Write-Output "ort setup is already downloaded at : $ortSetupPath"
+        if(Test-Path $winmlSetupPath){
+            Write-Output "winml setup is already downloaded at : $winmlSetupPath"
         }
         # Else dowloading
         else{
-            $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
+            $result = download_file -url $winmlScriptUrl -downloadfile $winmlSetupPath
             if($result){
-                Write-Output "ort setup is downloaded at : $ortSetupPath"
+                Write-Output "winml setup is downloaded at : $winmlSetupPath"
             }
             else{
-                Write-Output "ort setup download failed. Download from $ortScriptUrl"
+                Write-Output "winml setup download failed. Download from $winmlScriptUrl"
             }
         }
         # License 
@@ -423,7 +423,7 @@ Function WinML_Setup {
             # Activate the virtual environment
             & "$SDX_WinML_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/ORT-Nightly/pypi/simple --extra-index-url https://pypi.org/simple onnxruntime-winml==1.22.0
+            pip install --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/winml-Nightly/pypi/simple --extra-index-url https://pypi.org/simple onnxruntime-winml==1.22.0
 			pip install pillow==11.2.1 numpy==2.2.6
 
 			pip install requests
