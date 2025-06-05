@@ -18,7 +18,7 @@
 
 
 # Define QNN SDK version (at the time of writing tutorials). Users can change this version if they have downloaded a different version of QNN SDK.
-$QNN_SDK_VERSION = "2.28.2.241116"
+$QNN_SDK_VERSION = "2.34.0.250424"
 
 # Define URLs for dependencies
 
@@ -28,8 +28,10 @@ $pythonUrl = "https://www.python.org/ftp/python/3.10.4/python-3.10.4-amd64.exe"
 # Cmake 3.30.4 url
 $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
 
+$pyscriptUrl = "qnn_setup.ps1 https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/setup_artifact_download.py"
+
 # QNN SDK download link for converting, generating, and executing the model on HTP (NPU) backend
-$aIEngineSdkUrl = "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v$QNN_SDK_VERSION.zip"
+$aIEngineSdkUrl = "https://apigwx-aws.qualcomm.com/qsc/public/v1/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/$QNN_SDK_VERSION/v$QNN_SDK_VERSION.zip"
 
 <# Required files 
     - qnn_setup.ps1      : qnn_setup script for environment activation
@@ -94,6 +96,7 @@ Function Set_Variables {
     }
     Set-Location -Path $rootDirPath
     # Define download directory inside the working directory for downloading all dependency files and SDK.
+    $global:pyscriptDownloadPath = "$rootDirPath\setup_artifact_download.py"
     $global:downloadDirPath = "$rootDirPath\Downloads"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $downloadDirPath)) {
@@ -409,7 +412,8 @@ Function download_and_extract {
     process {
         $zipFilePath = "$rootDirPath\downloaded.zip"
         # Download the ZIP file
-        Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
+        #python .\setup_artifact_download.py -url $artifactsUrl -outputfile $zipFilePath
+	curl.exe -L -o $zipFilePath $artifactsUrl
 
          # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -760,23 +764,27 @@ Function QNN_Setup{
         # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
         Set-ExecutionPolicy RemoteSigned
         Set_Variables -rootDirPath $rootDirPath
+		download_file -Uri $pyscriptUrl -downloadfile $pyscriptDownloadPath
         download_install_python
         Show-Progress -percentComplete 1 6
         download_install_VS_Studio
         Show-Progress -percentComplete 2 6
+        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
+        if (-Not (Test-Path -Path $SDX_QAIRT_VENV_Path))
+            {
+                py -3.10 -m venv $SDX_QAIRT_VENV_Path
+            }
+        & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1"
+        pip install requests tqdm argparse
         download_install_AI_Engine_Direct_SDK
         Show-Progress -percentComplete 3 6
-	    download_install_cmake
+	deactivate
+	download_install_cmake
         Show-Progress -percentComplete 4 6
         download_script_license
         mobilenet_artifacts
         Show-Progress -percentComplete 5 6
-        $SDX_QAIRT_VENV_Path = "$rootDirPath\$QAIRT_VENV_Path"
-        # Check if virtual environment was created
-        if (-Not (Test-Path -Path $SDX_QAIRT_VENV_Path))
-        {
-            py -3.10 -m venv $SDX_QAIRT_VENV_Path
-        }
+        
         if (Test-Path "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1") {
             & "$SDX_QAIRT_VENV_Path\Scripts\Activate.ps1" 
             # upgrade pip
@@ -793,7 +801,7 @@ Function QNN_Setup{
             pip install onnxruntime==1.17.1
             pip install onnxsim==0.4.36  
             pip install fiftyone
-	        pip install requests
+	    pip install requests
             pip install --upgrade opencv-python
             # checking all python dependency 
             python "${QNN_SDK_ROOT}\bin\check-python-dependency"

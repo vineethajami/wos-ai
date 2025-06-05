@@ -10,7 +10,7 @@
     The ort_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
     Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
     Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
-    They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
+    They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for GPU EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
     It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
     The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
     By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created. 
@@ -60,7 +60,7 @@ $pythonScriptsPath = $pythonInstallPath+"\Scripts"
     Each tutorial section will have its own individual Python environment:
 
     - ORT CPU EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-    - ORT DML EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
+    - ORT GPU EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
     - ORT QNN EP           : Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
     - Hugging Face Optimum : Uses SDX_HF_ENV, which has specific Python package dependencies.
 
@@ -74,7 +74,7 @@ $pythonScriptsPath = $pythonInstallPath+"\Scripts"
 #>
 
 $ORT_CPU_ENV_Path = "Python_Venv\SDX_ORT_CPU_ENV"
-$ORT_DML_ENV_Path = "Python_Venv\SDX_ORT_DML_ENV"
+$ORT_GPU_ENV_Path = "Python_Venv\SDX_ORT_GPU_ENV"
 $ORT_QNN_ENV_Path = "Python_Venv\SDX_ORT_QNN_ENV"
 $ORT_HF_ENV_Path  = "Python_Venv\SDX_ORT_HF_ENV"
 
@@ -471,7 +471,7 @@ Function Activate_ORT_CPU_VENV {
 }
 
 
-Function ORT_DML_Setup {
+Function ORT_GPU_Setup {
     param(
         [string]$rootDirPath = "C:\WoS_AI"
         )
@@ -486,37 +486,37 @@ Function ORT_DML_Setup {
         download_script_license
         mobilenet_artifacts
         Show-Progress -percentComplete 3 4
-        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
         # Check if virtual environment was created
-        if (-Not (Test-Path -Path  $SDX_ORT_DML_ENV_Path))
+        if (-Not (Test-Path -Path  $SDX_ORT_GPU_ENV_Path))
         {
-           py -3.12 -m venv $SDX_ORT_DML_ENV_Path
+           py -3.12 -m venv $SDX_ORT_GPU_ENV_Path
         }
         # Check if the virtual environment was created successfully
-        if (Test-Path "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1") {
+        if (Test-Path "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1") {
             # Activate the virtual environment
-            & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+            & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime-directml==1.20.1
+            pip install onnxruntime-qnn==1.22.0
             pip install pillow
-	    pip install requests
+			pip install requests
         }
         Show-Progress -percentComplete 4 4
-        Write-Output "***** Installation for ORT-DML *****"
-        Check_Setup -logFilePath "$debugFolder\ORT_DML_Setup_Debug.log"
+        Write-Output "***** Installation for ORT-GPU *****"
+        Check_Setup -logFilePath "$debugFolder\ORT_GPU_Setup_Debug.log"
         Invoke-Command { & "powershell.exe" } -NoNewScope
     }
 }
 
-Function Activate_ORT_DML_VENV {
+Function Activate_ORT_GPU_VENV {
     param ( 
         [string]$rootDirPath = "C:\WoS_AI" 
     )
     process {
-        $SDX_ORT_DML_ENV_Path = "$rootDirPath\$ORT_DML_ENV_Path"
+        $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
         $global:DIR_PATH      = $rootDirPath
         cd "$DIR_PATH\$Mobilenet_Folder_path"
-        & "$SDX_ORT_DML_ENV_Path\Scripts\Activate.ps1"
+        & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
     }  
 }
 
@@ -595,7 +595,7 @@ Function ORT_QNN_Setup {
             # Activate the virtual environment
             & "$SDX_ORT_QNN_ENV_Path\Scripts\Activate.ps1"
             python -m pip install --upgrade pip
-            pip install onnxruntime-qnn==1.20.1
+            pip install onnxruntime-qnn==1.22.0
             pip install pillow
 	    pip install requests
         }
