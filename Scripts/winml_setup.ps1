@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2025, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -8,9 +8,8 @@
 
 <#  
     The winml_setup.ps1 PowerShell script automates the setup by downloading and installing necessary components. Such as Python, ONNX models, required artifacts, and redistributable packages.
-    The script checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
-    They then activate the virtual environment, upgrade pip, and install the required packages. After installation, a success message will be shown.
-    The WinML_Setup function also copies specific files to the rootDirPath, which are needed to run the model on NPU. 
+    The script checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist, then activate the virtual environment, upgrade pip, and install the required packages. 
+    After installation, a success message will be shown.The WinML_Setup function also copies specific files to the rootDirPath, which are needed to run the model on NPU. 
     By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created. 
 #>
 
