@@ -39,7 +39,7 @@ $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
     - ort_setup.ps1      : ort_setup script for environment activation
     - License             : License document
 #>
-$ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
+# $ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -74,7 +74,7 @@ $pythonScriptsPath = $pythonInstallPath+"\Scripts"
 #>
 
 $ORT_CPU_ENV_Path = "Python_Venv\SDX_ORT_CPU_ENV"
-$ORT_GPU_ENV_Path = "Python_Venv\SDX_ORT_GPU_ENV"
+# $ORT_GPU_ENV_Path = "Python_Venv\SDX_ORT_GPU_ENV"
 $ORT_QNN_ENV_Path = "Python_Venv\SDX_ORT_QNN_ENV"
 $ORT_HF_ENV_Path  = "Python_Venv\SDX_ORT_HF_ENV"
 
@@ -103,13 +103,13 @@ Function Set_Variables {
     $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $scriptsDirPath)) {
-        New-Item -ItemType Directory -Path $scriptsDirPath
-    }
-    $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
+    # # Define download directory inside the working directory for downloading all dependency files and SDK.
+    # $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
+    # # Create the Root folder if it doesn't exist
+    # if (-Not (Test-Path $scriptsDirPath)) {
+    #     New-Item -ItemType Directory -Path $scriptsDirPath
+    # }
+    # $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -216,19 +216,19 @@ Function download_script_license{
         # ort setup script
         # Checking if ort setup already present 
         # If yes
-        if(Test-Path $ortSetupPath){
-            Write-Output "ort setup is already downloaded at : $ortSetupPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
-            if($result){
-                Write-Output "ort setup is downloaded at : $ortSetupPath"
-            }
-            else{
-                Write-Output "ort setup download failed. Download from $ortScriptUrl"
-            }
-        }
+        # if(Test-Path $ortSetupPath){
+        #     Write-Output "ort setup is already downloaded at : $ortSetupPath"
+        # }
+        # # Else dowloading
+        # else{
+        #     $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
+        #     if($result){
+        #         Write-Output "ort setup is downloaded at : $ortSetupPath"
+        #     }
+        #     else{
+        #         Write-Output "ort setup download failed. Download from $ortScriptUrl"
+        #     }
+        # }
         # License 
         # Checking if License already present 
         # If yes
@@ -471,54 +471,54 @@ Function Activate_ORT_CPU_VENV {
 }
 
 
-Function ORT_GPU_Setup {
-    param(
-        [string]$rootDirPath = "C:\WoS_AI"
-        )
-    process {
-    	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
-     	Set-ExecutionPolicy RemoteSigned 
-        Set_Variables -rootDirPath $rootDirPath
-        download_install_python
-        Show-Progress -percentComplete 1 4
-        download_install_redistributable
-        Show-Progress -percentComplete 2 4
-        download_script_license
-        mobilenet_artifacts
-        Show-Progress -percentComplete 3 4
-        $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
-        # Check if virtual environment was created
-        if (-Not (Test-Path -Path  $SDX_ORT_GPU_ENV_Path))
-        {
-           py -3.12 -m venv $SDX_ORT_GPU_ENV_Path
-        }
-        # Check if the virtual environment was created successfully
-        if (Test-Path "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1") {
-            # Activate the virtual environment
-            & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
-            python -m pip install --upgrade pip
-            pip install onnxruntime-qnn==1.22.0
-            pip install pillow
-			pip install requests
-        }
-        Show-Progress -percentComplete 4 4
-        Write-Output "***** Installation for ORT-GPU *****"
-        Check_Setup -logFilePath "$debugFolder\ORT_GPU_Setup_Debug.log"
-        Invoke-Command { & "powershell.exe" } -NoNewScope
-    }
-}
+# Function ORT_GPU_Setup {
+#     param(
+#         [string]$rootDirPath = "C:\WoS_AI"
+#         )
+#     process {
+#     	# Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
+#      	Set-ExecutionPolicy RemoteSigned 
+#         Set_Variables -rootDirPath $rootDirPath
+#         download_install_python
+#         Show-Progress -percentComplete 1 4
+#         download_install_redistributable
+#         Show-Progress -percentComplete 2 4
+#         download_script_license
+#         mobilenet_artifacts
+#         Show-Progress -percentComplete 3 4
+#         $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
+#         # Check if virtual environment was created
+#         if (-Not (Test-Path -Path  $SDX_ORT_GPU_ENV_Path))
+#         {
+#            py -3.12 -m venv $SDX_ORT_GPU_ENV_Path
+#         }
+#         # Check if the virtual environment was created successfully
+#         if (Test-Path "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1") {
+#             # Activate the virtual environment
+#             & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
+#             python -m pip install --upgrade pip
+#             pip install onnxruntime-qnn==1.22.0
+#             pip install pillow
+# 			pip install requests
+#         }
+#         Show-Progress -percentComplete 4 4
+#         Write-Output "***** Installation for ORT-GPU *****"
+#         Check_Setup -logFilePath "$debugFolder\ORT_GPU_Setup_Debug.log"
+#         Invoke-Command { & "powershell.exe" } -NoNewScope
+#     }
+# }
 
-Function Activate_ORT_GPU_VENV {
-    param ( 
-        [string]$rootDirPath = "C:\WoS_AI" 
-    )
-    process {
-        $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
-        $global:DIR_PATH      = $rootDirPath
-        cd "$DIR_PATH\$Mobilenet_Folder_path"
-        & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
-    }  
-}
+# Function Activate_ORT_GPU_VENV {
+#     param ( 
+#         [string]$rootDirPath = "C:\WoS_AI" 
+#     )
+#     process {
+#         $SDX_ORT_GPU_ENV_Path = "$rootDirPath\$ORT_GPU_ENV_Path"
+#         $global:DIR_PATH      = $rootDirPath
+#         cd "$DIR_PATH\$Mobilenet_Folder_path"
+#         & "$SDX_ORT_GPU_ENV_Path\Scripts\Activate.ps1"
+#     }  
+# }
 
 Function ORT_HF_Setup {
     param(
