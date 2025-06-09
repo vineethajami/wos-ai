@@ -33,10 +33,8 @@ $modelUrl =  "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/apidoc/mob
 $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
 
 <# Required files 
-    - winml_setup.ps1      : winml_setup script for environment activation
     - License             : License document
 #>
-$winmlScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/winml_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -69,7 +67,7 @@ Function Set_Variables {
         New-Item -ItemType Directory -Path $rootDirPath
     }
     Set-Location -Path $rootDirPath
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    # Define download directory inside the working directory for downloading all dependency files.
     $global:downloadDirPath = "$rootDirPath\Downloads"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $downloadDirPath)) {
@@ -79,14 +77,6 @@ Function Set_Variables {
     $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $scriptsDirPath)) {
-        New-Item -ItemType Directory -Path $scriptsDirPath
-    }
-    $global:winmlSetupPath      = "$scriptsDirPath\winml_setup.ps1"
-    
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
 
@@ -95,7 +85,7 @@ Function Set_Variables {
     if (-Not (Test-Path $debugFolder)) {
         New-Item -ItemType Directory -Path $debugFolder
     }
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
+    # Define mobilenet folder for mobilenet artifacts.
     $global:mobilenetFolder = "$rootDirPath\$Mobilenet_Folder_path"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $mobilenetFolder)) {
@@ -189,22 +179,6 @@ Function install_python {
 Function download_script_license{
     param()
     process{
-        # winml setup script
-        # Checking if winml setup already present 
-        # If yes
-        if(Test-Path $winmlSetupPath){
-            Write-Output "winml setup is already downloaded at : $winmlSetupPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $winmlScriptUrl -downloadfile $winmlSetupPath
-            if($result){
-                Write-Output "winml setup is downloaded at : $winmlSetupPath"
-            }
-            else{
-                Write-Output "winml setup download failed. Download from $winmlScriptUrl"
-            }
-        }
         # License 
         # Checking if License already present 
         # If yes
