@@ -39,7 +39,7 @@ $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
     - ort_setup.ps1      : ort_setup script for environment activation
     - License             : License document
 #>
-$ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
+# $ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
@@ -104,12 +104,12 @@ Function Set_Variables {
     $global:vsRedistDownloadPath = "$downloadDirPath\vc_redist.arm64.exe"
 
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $scriptsDirPath)) {
-        New-Item -ItemType Directory -Path $scriptsDirPath
-    }
-    $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
+    # $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
+    # # Create the Root folder if it doesn't exist
+    # if (-Not (Test-Path $scriptsDirPath)) {
+    #     New-Item -ItemType Directory -Path $scriptsDirPath
+    # }
+    # $global:ortSetupPath      = "$scriptsDirPath\ort_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -216,19 +216,19 @@ Function download_script_license{
         # ort setup script
         # Checking if ort setup already present 
         # If yes
-        if(Test-Path $ortSetupPath){
-            Write-Output "ort setup is already downloaded at : $ortSetupPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
-            if($result){
-                Write-Output "ort setup is downloaded at : $ortSetupPath"
-            }
-            else{
-                Write-Output "ort setup download failed. Download from $ortScriptUrl"
-            }
-        }
+        # if(Test-Path $ortSetupPath){
+        #     Write-Output "ort setup is already downloaded at : $ortSetupPath"
+        # }
+        # # Else dowloading
+        # else{
+        #     $result = download_file -url $ortScriptUrl -downloadfile $ortSetupPath
+        #     if($result){
+        #         Write-Output "ort setup is downloaded at : $ortSetupPath"
+        #     }
+        #     else{
+        #         Write-Output "ort setup download failed. Download from $ortScriptUrl"
+        #     }
+        # }
         # License 
         # Checking if License already present 
         # If yes
