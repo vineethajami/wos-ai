@@ -40,6 +40,7 @@ $vsRedistributableUrl = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"
     - License             : License document
 #>
 # $ortScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/ort_setup.ps1"
+
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 <#  Artifacts for tutorials, including:
