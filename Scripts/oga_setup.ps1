@@ -1,19 +1,15 @@
 # =============================================================================
 #
-# Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2025, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # =============================================================================
 
 <#  
-    The ort_setup.ps1 PowerShell script automates the setup of various ONNX Runtime (ORT) Execution Providers (EP) by downloading and installing necessary components.
-    Such as Python, ONNX models, required artifacts, and redistributable packages. Separate functions are defined for each ORT EP. 
-    Each function checks for the existence of a virtual environment at a rootDirPath and creates one if it doesn’t exist. 
-    They then activate the virtual environment, upgrade pip, and install the required packages: onnxruntime for CPU EP, onnxruntime-directml for DML EP, onnxruntime-qnn for QNN EP, and optimum[onnxruntime] for Huggingface tutorials. 
-    It is not necessary to install files for all ORT EP, users are free to try any one EP or all EPs based on their needs, and the script will handle the installation accordingly. After installation, a success message will be shown.
-    The ORT_QNN_setup function also copies specific DLL files to the rootDirPath, which are needed to run the model on NPU. 
-    By default, $rootDirPath is set to C:\WoS_AI, where all files will be downloaded and the Python environment will be created. 
+    The oga_setup.ps1 PowerShell script automates the setup process for ONNX Runtime (ORT) QNN and GenAI by downloading and installing all required components, including Python, Git, ONNX Runtime GenAI, and ONNX Runtime QNN.
+    The script checks whether a Python virtual environment exists at the specified $rootDirPath. If it does not, the script creates the environment, activates it, upgrades pip, and installs the necessary Python packages.
+    Upon successful completion, a confirmation message is displayed. By default, the root directory is set to C:\WoS_AI, where all files will be downloaded and the virtual environment will be created. 
 #>
 
 ############################ Define the URL for download ##################################
@@ -32,7 +28,7 @@ $pythonUrl = "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
 $gitUrl = "https://github.com/git-for-windows/git/releases/download/v2.49.0.windows.1/Git-2.49.0-arm64.exe"
 
 <# Required files 
-    - ort_setup.ps1      : ort_setup script for environment activation
+    - oga_setup.ps1      : oga_setup script for environment activation
     - License             : License document
 #>
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
@@ -47,16 +43,9 @@ $pythonScriptsPath = $pythonInstallPath+"\Scripts"
 $gitInstallPath = "C:\Program Files\Git"
 
 <#
-    Each tutorial section will have its own individual Python environment:
+    The tutorial section will have its own individual Python environment:
 
-    - ORT CPU EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-    - ORT DML EP           : Uses SDX_ORT_CPU_ENV, which has specific Python package dependencies.
-    - ORT QNN EP           : Uses SDX_ORT_QNN_ENV, which has specific Python package dependencies.
-    - Hugging Face Optimum : Uses SDX_HF_ENV, which has specific Python package dependencies.
-
-    Note: Each section has dependencies that cannot be used in conjunction with other Python packages.
-    For example, ORT QNN EP and ORT CPU EP cannot install packages in the same Python environment.
-    Users are advised to create separate Python environments for each case.
+    - OGA QNN EP           : Uses SDX_OGA_ENV, which has specific Python package dependencies.
 
     Define the paths for each environment to be created in the root directory 
 	
@@ -395,6 +384,3 @@ Function Activate_OGA_VENV {
         & "$SDX_OGA_ENV_Path\Scripts\Activate.ps1"
     }  
 }
-
-OGA_Setup
-Activate_OGA_VENV
