@@ -37,7 +37,6 @@ $aIEngineSdkUrl = "https://apigwx-aws.qualcomm.com/qsc/public/v1/api/download/so
     - qnn_setup.ps1      : qnn_setup script for environment activation
     - License             : License document
 #>
-$qnnScriptUrl     = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/Scripts/qnn_setup.ps1"
 $licenseUrl        = "https://raw.githubusercontent.com/quic/wos-ai/refs/heads/main/LICENSE"
 
 # gen_qnn_ctx_gen_ctx python script
@@ -109,14 +108,6 @@ Function Set_Variables {
 
     # Define the SDK download path.
     $global:aIEngineSdkDownloadPath     = "$downloadDirPath\qairt\$QNN_SDK_VERSION"
-
-    # Define download directory inside the working directory for downloading all dependency files and SDK.
-    $global:scriptsDirPath = "$downloadDirPath\Setup_Scripts"
-    # Create the Root folder if it doesn't exist
-    if (-Not (Test-Path $scriptsDirPath)) {
-        New-Item -ItemType Directory -Path $scriptsDirPath
-    }
-    $global:qnnSetupPath      = "$scriptsDirPath\qnn_setup.ps1"
     
     # Define the license download path.
     $global:lincensePath      = "$rootDirPath\License"
@@ -540,22 +531,6 @@ Function download_onnxmodel {
 Function download_script_license{
     param()
     process{
-        # qnn setup script
-        # Checking if qnn setup already present 
-        # If yes
-        if(Test-Path $qnnSetupPath){
-            Write-Output "qnn setup is already downloaded at : $qnnSetupPath"
-        }
-        # Else dowloading
-        else{
-            $result = download_file -url $qnnScriptUrl -downloadfile $qnnSetupPath
-            if($result){
-                Write-Output "qnn setup is downloaded at : $qnnSetupPath"
-            }
-            else{
-                Write-Output "qnn setup download failed. Download from $qnnScriptUrl"
-            }
-        }
         # License 
         # Checking if License already present 
         # If yes
