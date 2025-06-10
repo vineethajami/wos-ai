@@ -74,8 +74,8 @@ Function Set_Variables {
     $global:sourceModelDownlaodPath = "$rootDirPath\Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
     $global:prebuildLibraryDownlaodPath = "$downloadDirPath\llama-b5618-bin-win-cpu-arm64.zip"
     $global:prebuild_unzipLocation = "$rootDirPath\llama-b5618-bin-win-cpu-arm64"
-    $global:prebuildGpuLibraryDownlaodPath = "$downloadDirPath\llama-b5618-bin-win-gpu-arm64.zip"
-    $global:prebuildGpu_unzipLocation = "$rootDirPath\llama-b5618-bin-win-gpu-arm64"
+    $global:prebuildGpuLibraryDownlaodPath = "$downloadDirPath\llama-b5618-bin-win-opencl-adreno-arm64.zip"
+    $global:prebuildGpu_unzipLocation = "$rootDirPath\llama-b5618-bin-win-opencl-adreno-arm64"
 }
 
 Function Show-Progress {
