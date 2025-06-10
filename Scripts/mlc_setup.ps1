@@ -28,6 +28,17 @@ $mlcFileName          = "mlc_llm_adreno_cpu_clml_2025_06_r1-0.1.dev0-cp312-cp312
 $tvmWheelFileUrl      = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/2025.06.r1/tvm_adreno_cpu_clml_2025_06_r1-0.20.dev0-cp312-cp312-win_amd64.whl"
 $tvmFileName          = "tvm_adreno_cpu_clml_2025_06_r1-0.20.dev0-cp312-cp312-win_amd64.whl" 
 
+# Visual Studio dependency for compiling and converting ONNX model to C++ & binary, used for generating model.dll file
+$vsStudioUrl = "https://download.visualstudio.microsoft.com/download/pr/7593f7f0-1b5b-43e1-b0a4-cceb004343ca/09b5b10b7305ae76337646f7570aaba52efd149b2fed382fdd9be2914f88a9d0/vs_Enterprise.exe"
+
+$vsInstallerPath = "C:\VS\Common7\Tools\Launch-VsDevShell.ps1"
+$SUGGESTED_VS_BUILDTOOLS_VERSION = "14.34"
+$SUGGESTED_WINSDK_VERSION = "10.0.22621"
+$SUGGESTED_VC_VERSION = "19.34"
+
+$global:CHECK_RESULT = 1
+$global:tools = @{}
+$global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" )
 
 ############################ Define the Installation paths ###############################################
 
@@ -51,7 +62,7 @@ Function Set_Variables {
     }
     Set-Location -Path $rootDirPath
     # Define download directory inside the working directory for downloading all dependency files and SDK.
-	$global:DIR_PATH = "$rootDirPath"
+    $global:DIR_PATH = "$rootDirPath"
     $global:downloadDirPath = "$rootDirPath\Downloads"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $downloadDirPath)) {
@@ -62,7 +73,7 @@ Function Set_Variables {
     $global:sevenZipDownloadPath      = "$downloadDirPath\7zInstaller.exe"
     $global:mingwDownloaderPath       = "$downloadDirPath\x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
     $global:gitDownloadPath           = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
-
+    $global:vsStudioDownloadPath      = "$downloadDirPath\vs_Enterprise.exe"
     $global:debugFolder               = "$rootDirPath\Debug_Logs"
     # Create the Root folder if it doesn't exist
     if (-Not (Test-Path $debugFolder)) {
@@ -87,6 +98,199 @@ Function Show-Progress {
     }
     # Write-Progress -Activity "Progress" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
     Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
+}
+
+Function install_VS_Studio {
+    param()
+    process {
+        # Install the VS Studio
+        Start-Process -FilePath $vsStudioDownloadPath -ArgumentList "--installPath C:\VS --passive --wait --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended --add Microsoft.VisualStudio.Component.VC.14.34.17.4.x86.x64 --add Microsoft.VisualStudio.Component.VC.14.34.17.4.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset" -Wait -PassThru
+        # Check if the VS Studio
+        check_MSVC_components_version
+    }
+}
+
+
+Function show_recommended_version_message {
+    param (
+        [String] $SuggestVersion,
+        [String] $FoundVersion,
+        [String] $SoftwareName
+    )
+    process {
+        Write-Warning "The version of $SoftwareName $FoundVersion found has not been validated. Recommended to use known stable $SoftwareName version $SuggestVersion"
+    }
+}
+
+Function show_required_version_message {
+    param (
+        [String] $RequiredVersion,
+        [String] $FoundVersion,
+        [String] $SoftwareName
+    )
+    process {
+        Write-Host "ERROR: Require $SoftwareName version $RequiredVersion. Found $SoftwareName version $FoundVersion" -ForegroundColor Red
+    }
+}
+
+
+Function compare_version {
+    param (
+        [String] $TargetVersion,
+        [String] $FoundVersion,
+        [String] $SoftwareName
+    )
+    process {
+        if ( (([version]$FoundVersion).Major -eq ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -eq ([version]$TargetVersion).Minor) ) { }
+        elseif ( (([version]$FoundVersion).Major -ge ([version]$TargetVersion).Major) -and (([version]$FoundVersion).Minor -ge ([version]$TargetVersion).Minor) ) {
+            show_recommended_version_message $TargetVersion $FoundVersion $SoftwareName
+        }
+        else {
+            show_required_version_message $TargetVersion $FoundVersion $SoftwareName
+            $global:CHECK_RESULT = 0
+        }
+    }
+}
+
+Function locate_prerequisite_tools_path {
+    param ()
+    process {
+        # Get and Locate VSWhere
+        if (!(Test-Path $global:tools['vswhere'])) {
+            Write-Host "No Visual Studio Instance(s) Detected, Please Refer To The Product Documentation For Details" -ForegroundColor Red
+        }
+    }
+}
+
+Function detect_VS_instance {
+    param ()
+    process {
+        locate_prerequisite_tools_path
+
+        $INSTALLED_VS_VERSION = & $global:tools['vswhere'] -latest -property installationVersion
+        $INSTALLED_PATH = & $global:tools['vswhere'] -latest -property installationPath
+        $productId = & $global:tools['vswhere'] -latest -property productId
+
+        return $productId, $INSTALLED_PATH, $INSTALLED_VS_VERSION
+    }
+}
+
+Function check_VS_BuildTools_version {
+    param (
+        [String] $SuggestVersion = $SUGGESTED_VS_BUILDTOOLS_VERSION
+    )
+    process {
+        $INSTALLED_PATH = & $global:tools['vswhere'] -latest -property installationPath
+        $version_file_path = Join-Path $INSTALLED_PATH "VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
+        if (Test-Path $version_file_path) {
+            $INSTALLED_VS_BUILDTOOLS_VERSION = Get-Content $version_file_path
+            compare_version $SuggestVersion $INSTALLED_VS_BUILDTOOLS_VERSION "VS BuildTools"
+            return $INSTALLED_VS_BUILDTOOLS_VERSION
+        }
+        else {
+            Write-Error "VS BuildTools not installed"
+            $global:CHECK_RESULT = 0
+        }
+        return "Not Installed"
+    }
+}
+
+Function check_WinSDK_version {
+    param (
+        [String] $SuggestVersion = $SUGGESTED_WINSDK_VERSION
+    )
+    process {
+        $INSTALLED_WINSDK_VERSION = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0' -Name ProductVersion
+        if($?) {
+            compare_version $SuggestVersion $INSTALLED_WINSDK_VERSION "Windows SDK"
+            return $INSTALLED_WINSDK_VERSION
+        }
+        else {
+            Write-Error "Windows SDK not installed"
+            $global:CHECK_RESULT = 0
+        }
+        return "Not Installed"
+    }
+}
+
+Function check_VC_version {
+    param (
+        [String] $VsInstallLocation,
+        [String] $BuildToolVersion,
+        [String] $Arch,
+        [String] $SuggestVersion = $SUGGESTED_VC_VERSION
+    )
+    process {
+        $VcExecutable = Join-Path $VsInstallLocation "VC\Tools\MSVC\" | Join-Path -ChildPath $BuildToolVersion | Join-Path -ChildPath "bin\Hostx64" | Join-Path -ChildPath $Arch | Join-Path -ChildPath "cl.exe"
+
+        if(Test-Path $VcExecutable) {
+            #execute $VcExecutable and retrieve stderr since version is in it.
+            $process_alloutput = & "$VcExecutable" 2>&1
+            $process_stderror = $process_alloutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
+            $CMD = $process_stderror | Out-String | select-string "Version\s+(\d+\.\d+\.\d+)" # The software version is output in STDERR
+            $INSTALLED_VC_VERSION = $CMD.matches.groups[1].value
+            if($INSTALLED_VC_VERSION) {
+                compare_version $SuggestVersion $INSTALLED_VC_VERSION ("Visual C++(" + $Arch + ")")
+                return $INSTALLED_VC_VERSION
+            }
+            else {
+                Write-Error "Visual C++ not installed"
+                $global:CHECK_RESULT = 0
+            }
+        }
+        return "Not Installed"
+    }
+}
+
+Function check_MSVC_components_version {
+    param ()
+    process {
+        $check_result = @()
+        $productId, $vs_install_path, $vs_installed_version = detect_VS_instance
+        if ($productId) {
+            $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = $vs_installed_version}
+        }
+        else {
+            $check_result += [pscustomobject]@{Name = "Visual Studio"; Version = "Not Installed"}
+            $global:CHECK_RESULT = 0
+        }
+        $buildtools_version = check_VS_BuildTools_version
+        $check_result += [pscustomobject]@{Name = "VS Build Tools"; Version = $buildtools_version}
+        $check_result += [pscustomobject]@{Name = "Visual C++(x86)"; Version = check_VC_version $vs_install_path $buildtools_version "x64"}
+        $check_result += [pscustomobject]@{Name = "Visual C++(arm64)"; Version = check_VC_version $vs_install_path $buildtools_version "arm64"}
+        $check_result += [pscustomobject]@{Name = "Windows SDK"; Version = check_WinSDK_version}
+        Write-Host ($check_result | Format-Table| Out-String).Trim()
+    }
+}
+
+Function download_install_VS_Studio {
+    param()
+    process {
+        # Checking if VStudio already installed
+        # If yes
+        if (Test-Path $vsInstallerPath) {
+            Write-Output "VS-Studio already installed."
+        }
+        # Else downloading and installing VStudio
+        else {
+            Write-Output "Downloading the VS Studio..." 
+            $result = download_file -url $vsStudioUrl -downloadfile $vsStudioDownloadPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "VS Studio is downloaded at : $vsStudioDownloadPath" 
+                Write-Output "installing VS-Studio..."
+                if (install_VS_Studio) {
+                    Write-Output "VS-Studio installed successfully." 
+                }
+                else{
+                    Write-Output "VS-Studio installation failed..  from : $vsStudioDownloadPath"  
+                }
+            } 
+            else{
+                Write-Output "VS Studio download failed... Downloaded the VS Studio from :  $vsStudioUrl and install." 
+            }
+        }
+    }
 }
 
 Function download_file {
@@ -372,6 +576,21 @@ Function Check_Setup {
             }
         }
 
+ 	# Check if Visual Studio is installed
+        if (Test-Path $vsInstallerPath) {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Successful"
+                Comments  = "Microsoft Visual Studio version 17.10.4"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Microsoft Visual Studio"
+                Status    = "Failed"
+                Comments  = "Download from $vsStudioUrl"
+            }
+        }
+
         # Check if Git is installed
         if (Test-Path "$gitInstallPath") {
             $results += [PSCustomObject]@{
@@ -404,12 +623,14 @@ Function MLC_LLM_Setup {
     process {
         Set_Variables -rootDirPath $rootDirPath
         download_install_conda
-        Show-Progress -percentComplete 1 4
+        Show-Progress -percentComplete 1 5
         download_install_7z
         download_install_mingw
-        Show-Progress -percentComplete 2 4
+        Show-Progress -percentComplete 2 5
+	download_install_VS_Studio
+ 	Show-Progress -percentComplete 3 5
         download_install_git
-        Show-Progress -percentComplete 3 4
+        Show-Progress -percentComplete 4 5
 	Write-Output "Creating the conda env ... "
         conda create -n MLC_VENV -c conda-forge "llvmdev=15" "cmake>=3.24" git rust numpy==1.26.4 decorator psutil typing_extensions scipy attrs git-lfs python=3.12 onnx clang_win-64 -y
         #conda activate MLC_VENV
@@ -437,7 +658,7 @@ Function MLC_LLM_Setup {
 	# Install the package into the specified Conda environment
 	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\$mlcFileName" --prefix $mlcEnvPath
 	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\$tvmFileName" --prefix $mlcEnvPath
-	Show-Progress -percentComplete 4 4
+	Show-Progress -percentComplete 5 5
         Write-Output "***** Installation of MLC LLM *****"
         Check_Setup -logFilePath "$debugFolder\MLC_LLM_Setup_Debug.log"
     }
