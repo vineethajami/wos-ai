@@ -19,10 +19,14 @@
 ############################ Define the URL for download ###############################################
 
 $condaUrl             = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-$mlcLlmUtilsUrl       = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm-utils-win-x86.zip"
+$mlcLlmUtilsUrl       = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/2025.06.r1/mlc_llm-utils-win-x86-2025.06.r1.zip"
 $mingwUrl             = "https://github.com/niXman/mingw-builds-binaries/releases/download/14.2.0-rt_v12-rev0/x86_64-14.2.0-release-win32-seh-msvcrt-rt_v12-rev0.7z"
 $gitUrl               = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/Git-2.47.0.2-64-bit.exe"
 $sevenZipUrl          = "https://7-zip.org/a/7z2408-arm64.exe"
+$mlcWheelFileUrl      = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/2025.06.r1/mlc_llm_adreno_cpu_clml_2025_06_r1-0.1.dev0-cp312-cp312-win_amd64.whl"
+$mlcFileName          = "mlc_llm_adreno_cpu_clml_2025_06_r1-0.1.dev0-cp312-cp312-win_amd64.whl" 
+$tvmWheelFileUrl      = "https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/2025.06.r1/tvm_adreno_cpu_clml_2025_06_r1-0.20.dev0-cp312-cp312-win_amd64.whl"
+$tvmFileName          = "tvm_adreno_cpu_clml_2025_06_r1-0.20.dev0-cp312-cp312-win_amd64.whl" 
 
 
 ############################ Define the Installation paths ###############################################
@@ -411,26 +415,28 @@ Function MLC_LLM_Setup {
         #conda activate MLC_VENV
         download_and_extract_mlc_utils -artifactsUrl $mlcLlmUtilsUrl -rootDirPath $rootDirPath
         cd $rootDirPath
-	if (Test-Path "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl") {
+	if (Test-Path "$downloadDirPath\$mlcFileName") {
  		Write-Output "MLC wheel already exists at : $condaDownloaderPath"
         } 
 	else {
 		Write-Output "Downloading MLC wheel file..."
-		Invoke-WebRequest -o "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl
-		Write-Output "MLC wheel downloaded at : $downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl"
+		# Invoke-WebRequest -o "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl
+        Invoke-WebRequest -o "$downloadDirPath\$mlcFileName" "$mlcWheelFileUrl"
+		Write-Output "MLC wheel downloaded at : $downloadDirPath\$mlcFileName"
 	}
-	if (Test-Path "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl") {
+	if (Test-Path "$downloadDirPath\$tvmFileName") {
             	Write-Output "TVM wheel already exists at : $condaDownloaderPath"
         } 
 	else {
 		Write-Output "Downloading TVM wheel file..."
-		Invoke-WebRequest -o "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl
-		Write-Output "TVM wheel downloaded at : $downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl"
+		# Invoke-WebRequest -o "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" https://codelinaro.jfrog.io/artifactory/clo-472-adreno-opensource-ai/mlc-llm/tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl
+        Invoke-WebRequest -o "$downloadDirPath\$tvmFileName" "$tvmWheelFileUrl"
+		Write-Output "TVM wheel downloaded at : $downloadDirPath\$tvmFileName"
 	}
 	$mlcEnvPath = (conda info --base) + "\envs\MLC_VENV"
 	# Install the package into the specified Conda environment
-	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\mlc_llm_adreno_cpu-0.1.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
-	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\tvm_adreno_cpu-0.19.dev0-cp312-cp312-win_amd64.whl" --prefix $mlcEnvPath
+	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\$mlcFileName" --prefix $mlcEnvPath
+	& "$mlcEnvPath\Scripts\pip.exe" install "$downloadDirPath\$tvmFileName" --prefix $mlcEnvPath
 	Show-Progress -percentComplete 4 4
         Write-Output "***** Installation of MLC LLM *****"
         Check_Setup -logFilePath "$debugFolder\MLC_LLM_Setup_Debug.log"
