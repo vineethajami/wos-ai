@@ -29,8 +29,8 @@ $vsStudioUrl          = "https://download.visualstudio.microsoft.com/download/pr
 $sourceModelUrl       = "https://huggingface.co/bartowski/Meta-Llama-3-8B-Instruct-GGUF/resolve/main/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf?download=true"
 
 # Prebuild library url
-$prebuildLibraryUrl = "https://github.com/ggerganov/llama.cpp/releases/download/b4239/llama-b4239-bin-win-llvm-arm64.zip"
-
+$prebuildLibraryUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b5618/llama-b5618-bin-win-cpu-arm64.zip"
+$prebuildGpuLibraryUrl ="https://github.com/ggml-org/llama.cpp/releases/download/b5618/llama-b5618-bin-win-opencl-adreno-arm64.zip"
 
 
 # Define the cmake installation path.
@@ -73,9 +73,10 @@ Function Set_Variables {
     $global:cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
     $global:vsStudioDownloadPath = "$downloadDirPath\vs_Enterprise.exe"
     $global:sourceModelDownlaodPath = "$rootDirPath\Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
-    $global:prebuildLibraryDownlaodPath = "$downloadDirPath\llama-b4239-bin-win-llvm-arm64.zip"
-    $global:prebuild_unzipLocation = "$rootDirPath\llama-b4239-bin-win-llvm-arm64"
-
+    $global:prebuildLibraryDownlaodPath = "$downloadDirPath\llama-b5618-bin-win-cpu-arm64.zip"
+    $global:prebuild_unzipLocation = "$rootDirPath\llama-b5618-bin-win-cpu-arm64"
+    $global:prebuildGpuLibraryDownlaodPath = "$downloadDirPath\llama-b5618-bin-win-gpu-arm64.zip"
+    $global:prebuildGpu_unzipLocation = "$rootDirPath\llama-b5618-bin-win-gpu-arm64"
 }
 
 Function Show-Progress {
@@ -488,7 +489,7 @@ Function download_source_model {
 }
 
 
-Function download_prebuilt_binary {
+Function download_prebuilt_cpu_binary {
     param()
     process {
         
@@ -524,6 +525,41 @@ Function download_prebuilt_binary {
     }
 }
 
+Function download_prebuilt_gpu_binary {
+    param()
+    process {
+        
+        # Checking if prebuilt_unzipLocation already exists
+        if (Test-Path $prebuildGpu_unzipLocation) {
+            Write-Output "Prebuilt libraries already downloaded and unzipped."
+        }
+        else {
+            # Checking if prebuilt_binary already downloaded
+            if (Test-Path $prebuildGpuLibraryDownlaodPath) {
+                Write-Output "Prebuild library already downloaded."
+            }
+            else {
+                Write-Output "Downloading the prebuild library..." 
+                $result = download_file -url $prebuildGpuLibraryUrl -downloadfile $prebuildGpuLibraryDownlaodPath
+                # Checking for successful download
+                if ($result) {
+                    Write-Output "Prebuild library is downloaded at: $prebuildGpuLibraryDownlaodPath" 
+                } 
+                else {
+                    Write-Output "Prebuild library download failed... Downloaded the source model from: $prebuildGpuLibraryUrl and move to $prebuildGpuLibraryDownlaodPath." 
+                }
+            }
+            
+            # Unzipping the downloaded prebuild library
+            Write-Output "Unzipping the prebuild library..."
+            if (!(Test-Path $prebuildGpu_unzipLocation)) {
+                New-Item -ItemType Directory -Path $prebuildGpu_unzipLocation | Out-Null
+            }
+            Expand-Archive -Path $prebuildGpuLibraryDownlaodPath -DestinationPath $prebuildGpu_unzipLocation
+            Write-Output "Prebuild library unzipped to: $prebuildGpu_unzipLocation"
+        }
+    }
+}
 
 Function Check_Setup {
     param(
@@ -630,7 +666,8 @@ Function LLaMA_cpp_Setup{
         Show-Progress -percentComplete 2 5
         download_install_git
         Show-Progress -percentComplete 3 5
-		download_prebuilt_binary
+	download_prebuilt_cpu_binary
+ 	download_prebuild_gpu_binary
         Show-Progress -percentComplete 4 5
         download_source_model
         Show-Progress -percentComplete 5 5
