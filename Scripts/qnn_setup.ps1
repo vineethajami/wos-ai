@@ -738,7 +738,7 @@ Function QNN_Setup{
         # Set the permission on PowerShell to execute the command. If prompted, accept and enter the desired input to provide execution permission.
         Set-ExecutionPolicy RemoteSigned
         Set_Variables -rootDirPath $rootDirPath
-		download_file -Uri $pyscriptUrl -downloadfile $pyscriptDownloadPath
+	download_file -url $pyscriptUrl -downloadfile $pyscriptDownloadPath
         download_install_python
         Show-Progress -percentComplete 1 6
         download_install_VS_Studio
