@@ -333,7 +333,8 @@ Function download_file {
         while (-not $success -and $attempt -lt $maxAttempts) {
             try {
                 Write-Output "Attempting to download from: $url (Attempt $($attempt + 1) of $maxAttempts)"
-                Invoke-WebRequest -Uri $url -OutFile $downloadfile
+                #Invoke-WebRequest -Uri $url -OutFile $downloadfile
+		curl.exe -L -o $downloadfile $url
                 $success = $true
             }
             catch {
