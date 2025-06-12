@@ -785,4 +785,14 @@ Function llama_cpp_setup{
     }
 }
 
+Function Activate_LLAMA_CPP_VENV {
+    param ( 
+        [string]$rootDirPath = "C:\WoS_AI" 
+    )
+    process {
+        $SDX_LLAMA_CPP_VENV_Path = "$rootDirPath\$LLAMA_CPP_VENV"
+        $global:DIR_PATH      = $rootDirPath
+        & "$SDX_LLAMA_CPP_VENV_Path\Scripts\Activate.ps1"
+    }  
+}
 
