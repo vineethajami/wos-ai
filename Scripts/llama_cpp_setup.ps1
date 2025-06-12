@@ -791,7 +791,7 @@ Function Activate_LLAMA_CPP_VENV {
     )
     process {
         $SDX_LLAMA_CPP_VENV_Path = "$rootDirPath\$LLAMA_CPP_VENV"
-        $global:DIR_PATH      = $rootDirPath
+	cd $rootDirPath
         & "$SDX_LLAMA_CPP_VENV_Path\Scripts\Activate.ps1"
     }  
 }
