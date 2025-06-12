@@ -380,8 +380,9 @@ Function download_and_extract {
     process {
         $zipFilePath = "$rootDirPath\downloaded.zip"
         # Download the ZIP file
-        Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
-
+        # Invoke-WebRequest -Uri $artifactsUrl -OutFile $zipFilePath
+	curl.exe -L -o $zipFilePath $artifactsUrl
+ 
          # Extract the ZIP file
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zipFilePath, $rootDirPath)
