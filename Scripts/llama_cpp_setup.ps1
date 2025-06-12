@@ -16,6 +16,9 @@
 Set-ExecutionPolicy RemoteSigned
 
 # Define URLs for dependencies
+#Python 3.12 url
+$pythonUrl = "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
+
 # Cmake 3.30.4 url
 $cmakeUrl             = "https://github.com/Kitware/CMake/releases/download/v3.30.4/cmake-3.30.4-windows-arm64.msi"
 
@@ -48,6 +51,12 @@ $global:CHECK_RESULT = 1
 $global:tools = @{}
 $global:tools.add( 'vswhere', "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" )
 
+############################ python installation path ##################################
+# Retrieves the value of the Username
+$username =  (Get-ChildItem Env:\Username).value
+
+$pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312"
+$pythonScriptsPath = $pythonInstallPath+"\Scripts"
 
 ############################ Function ##################################
 
@@ -67,6 +76,9 @@ Function Set_Variables {
     if (-Not (Test-Path $downloadDirPath)) {
         New-Item -ItemType Directory -Path $downloadDirPath
     }
+    # Define the path where the installer will be downloaded.
+    $global:pythonDownloaderPath = "$downloadDirPath\python-3.12.6-amd64.exe" 
+    
     # Define the path where the installer will be downloaded.
     $global:gitDownloadPath = "$downloadDirPath\Git-2.47.0.2-64-bit.exe"
     $global:cmakeDownloaderPath  = "$downloadDirPath\cmake-3.30.4-windows-arm64.msi"
@@ -97,7 +109,35 @@ Function Show-Progress {
     Write-Host "[$progressBar] ($percentComplete/$totalPercent) Setup Complete"
 }
 
+Function install_python {
+    param()
+    process {
+        # Install Python
+        Start-Process -FilePath $pythonDownloaderPath -ArgumentList "/quiet InstallAllUsers=1 TargetDir=$pythonInstallPath" -Wait
+        # Check if Python was installed successfully
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            Write-Output "Python installed successfully."
+            # Get the current PATH environment variable
+            $envPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
 
+            # Add the new paths if they are not already in the PATH
+            if ($envPath -notlike "*$pythonScriptsPath*") {
+                $envPath = "$pythonScriptsPath;$pythonInstallPath;$envPath"
+                [System.Environment]::SetEnvironmentVariable("Path", $envPath, [System.EnvironmentVariableTarget]::User)
+            }
+
+            # Refresh environment variables
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+
+            # Verify Python installation
+            return $true
+        } 
+        else {
+            return $false
+        }
+        
+    }
+}
 
 Function install_VS_Studio {
     param()
@@ -291,6 +331,7 @@ Function install_cmake {
     }
 }
 
+
 Function install_git {
     param()
     process {
@@ -396,6 +437,36 @@ Function download_install_cmake {
             }
             else {
                 Write-Output "CMake download failed. Download the CMake file from : $cmakeUrl and install."
+            }
+        }
+    }
+}
+
+Function download_install_python {
+    param()
+    process {
+        # Check if python already installed
+        # If Yes
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            Write-Output "Python already installed."
+        }
+        # Else downloading and installing python
+        else{
+            Write-Output "Downloading the python file ..." 
+            $result = download_file -url $pythonUrl -downloadfile $pythonDownloaderPath
+            # Checking for successful download
+            if ($result) {
+                Write-Output "Python File is downloaded at : $pythonDownloaderPath"
+                Write-Output "Installing python..."
+                if (install_python) {
+                    Write-Output "Python installed successfully." 
+                }
+                else {
+                    Write-Output "Python installation failed.. Please installed python from : $pythonDownloaderPath"  
+                }
+            } 
+            else{
+                Write-Output "Python download failed. Download the python file from : $pythonUrl and install." 
             }
         }
     }
@@ -660,18 +731,20 @@ Function llama_cpp_setup{
     )
     process{  
         Set-ExecutionPolicy RemoteSigned
-        Set_Variables -rootDirPath $rootDirPath      
+        Set_Variables -rootDirPath $rootDirPath 
+	download_install_python
+ 	Show-Progress -percentComplete 1 6
         download_install_VS_Studio
-        Show-Progress -percentComplete 1 5
+        Show-Progress -percentComplete 2 6
         download_install_cmake
-        Show-Progress -percentComplete 2 5
+        Show-Progress -percentComplete 3 6
         download_install_git
-        Show-Progress -percentComplete 3 5
+        Show-Progress -percentComplete 4 6
 	download_prebuilt_cpu_binary
  	download_prebuilt_gpu_binary
-        Show-Progress -percentComplete 4 5
+        Show-Progress -percentComplete 5 6
         download_source_model
-        Show-Progress -percentComplete 5 5
+        Show-Progress -percentComplete 6 6
         Write-Output "***** Installation setup for LlaMA CPP *****"
         Check_Setup -logFilePath "$downloadDirPath\LLaMA_cpp_Debug.log"
     }
