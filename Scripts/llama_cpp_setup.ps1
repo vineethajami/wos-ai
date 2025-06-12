@@ -31,6 +31,9 @@ $vsStudioUrl          = "https://download.visualstudio.microsoft.com/download/pr
 # Source model url
 $sourceModelUrl       = "https://huggingface.co/bartowski/Meta-Llama-3-8B-Instruct-GGUF/resolve/main/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf?download=true"
 
+#llama.cpp repository url
+$llmaa_cppUrl = "https://github.com/ggerganov/llama.cpp.git"
+
 # Prebuild library url
 $prebuildLibraryUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b5618/llama-b5618-bin-win-cpu-arm64.zip"
 $prebuildGpuLibraryUrl ="https://github.com/ggml-org/llama.cpp/releases/download/b5618/llama-b5618-bin-win-opencl-adreno-arm64.zip"
@@ -57,6 +60,8 @@ $username =  (Get-ChildItem Env:\Username).value
 
 $pythonInstallPath = "C:\Users\$username\AppData\Local\Programs\Python\Python312"
 $pythonScriptsPath = $pythonInstallPath+"\Scripts"
+
+$LLAMA_CPP_VENV = "Python_Venv\LLAMA_CPP_VENV"
 
 ############################ Function ##################################
 
@@ -639,6 +644,21 @@ Function Check_Setup {
     )
     process {
         $results = @()
+	# Check if Python is installed
+        if (Test-Path "$pythonInstallPath\python.exe") {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Successful"
+                Comments  = "$(python --version)"
+            }
+        } else {
+            $results += [PSCustomObject]@{
+                Component = "Python"
+                Status    = "Failed"
+                Comments  = "Download from $pythonUrl"
+            }
+        }
+	
         # Check if Visual Studio is installed
         if (Test-Path $vsInstalledPath) {
             $results += [PSCustomObject]@{
@@ -744,6 +764,21 @@ Function llama_cpp_setup{
  	download_prebuilt_gpu_binary
         Show-Progress -percentComplete 5 6
         download_source_model
+	git clone $llmaa_cppUrl
+ 	$SDX_LLAMA_CPP_VENV_Path = "$rootDirPath\$LLAMA_CPP_VENV"
+        # Check if virtual environment was created
+        if (-Not (Test-Path -Path  $SDX_LLAMA_CPP_VENV_Path))
+        {
+           py -3.12 -m venv $SDX_LLAMA_CPP_VENV_Path
+        }
+        # Check if the virtual environment was created successfully
+        if (Test-Path "$SDX_LLAMA_CPP_VENV_Path\Scripts\Activate.ps1") {
+            # Activate the virtual environment
+            & "$SDX_LLAMA_CPP_VENV_Path\Scripts\Activate.ps1"
+            python -m pip install --upgrade pip
+            pip install huggingface_hub 
+	    pip install –r llama.cpp/requiremts.txt
+        }
         Show-Progress -percentComplete 6 6
         Write-Output "***** Installation setup for LlaMA CPP *****"
         Check_Setup -logFilePath "$downloadDirPath\LLaMA_cpp_Debug.log"
